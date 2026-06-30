@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dotación de Faenas
 
-## Getting Started
+Plataforma para gestionar la dotación de personal en faenas mineras y constructivas. Permite crear proyectos, planificar cargos requeridos semana a semana, y visualizar todo en una carta Gantt interactiva.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, Turbopack) + TypeScript
+- **Tailwind CSS** + **shadcn/ui** (base-ui)
+- **Prisma** + **SQLite** (desarrollo local)
+- **NextAuth v5** (credentials + JWT)
+
+## Funcionalidades
+
+- Login de administrador
+- Dashboard con proyectos vigentes y KPIs
+- Wizard de creación de proyectos: duración en semanas + cargos requeridos por semana
+- Vista Gantt por proyecto: cargos × semanas, con detalle al hacer clic en una semana o en un cargo
+- Curva de dotación (sparkline) por proyecto
+
+## Desarrollo local
 
 ```bash
+npm install
+npx prisma migrate dev
+npx tsx prisma/seed.ts   # datos demo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Credenciales demo tras el seed:
+- **Email:** `admin@faenas.cl`
+- **Password:** `admin123`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Roadmap
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Gestión de empleados individuales y asignación a proyectos
+- Carga y validación de documentación
+- Generación automática de contratos
