@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects  Project[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  client      String?
+  startDate   DateTime
+  weeks       Int
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  weekPlans WeekPlan[]
+
+  @@map("projects")
+}
+
+model Role {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String @default("OPERATIVO")
+  color    String @default("#3b82f6")
+
+  requirements RoleRequirement[]
+
+  @@map("roles")
+}
+
+model WeekPlan {
+  id         String   @id @default(cuid())
+  weekNumber Int
+  startDate  DateTime
+  endDate    DateTime
+  notes      String?
+
+  projectId    String
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirements RoleRequirement[]
+
+  @@unique([projectId, weekNumber])
+  @@map("week_plans")
+}
+
+model RoleRequirement {
+  id       String @id @default(cuid())
+  quantity Int    @default(1)
+
+  weekPlanId String
+  weekPlan   WeekPlan @relation(fields: [weekPlanId], references: [id], onDelete: Cascade)
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([weekPlanId, roleId])
+  @@map("role_requirements")
+}
