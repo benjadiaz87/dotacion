@@ -47,3 +47,27 @@ export function formatWeekRange(start: Date, end: Date): string {
   const e = new Date(end).toLocaleDateString("es-CL", { day: "numeric", month: "short" });
   return `${s} – ${e}`;
 }
+
+export type DocSemaphore = "green" | "yellow" | "red";
+
+export function computeSemaphore(requiredCount: number, approvedCount: number): DocSemaphore {
+  if (requiredCount === 0 || approvedCount === requiredCount) return "green";
+  if (approvedCount === 0) return "red";
+  return "yellow";
+}
+
+export type DotacionWorker = {
+  id: string;
+  rut: string;
+  fullName: string;
+  habilitado: boolean;
+};
+
+export function computeRoleFillSplit(workers: DotacionWorker[], needed: number) {
+  const habilitadosCount = workers.filter((w) => w.habilitado).length;
+  const noHabilitadosCount = workers.length - habilitadosCount;
+  const filledHabilitado = Math.min(habilitadosCount, needed);
+  const filledSinHabilitar = Math.min(noHabilitadosCount, Math.max(0, needed - filledHabilitado));
+  const vacantes = Math.max(0, needed - filledHabilitado - filledSinHabilitar);
+  return { habilitadosCount, filledHabilitado, filledSinHabilitar, vacantes };
+}

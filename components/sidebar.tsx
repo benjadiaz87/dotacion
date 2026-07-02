@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import React from "react";
 import {
   BarChart3,
   FolderKanban,
@@ -22,11 +23,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const navItems = [
+const navItems: { href: string; label: string; icon: React.ElementType; disabled?: boolean; badge?: string }[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/proyectos", label: "Proyectos", icon: FolderKanban },
-  { href: "/dashboard/empleados", label: "Empleados", icon: Users, disabled: true, badge: "Pronto" },
-  { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3, disabled: true, badge: "Pronto" },
+  { href: "/dashboard/empleados", label: "Empleados", icon: Users },
+  { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 interface SidebarProps {

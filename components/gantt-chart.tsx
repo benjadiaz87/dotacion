@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Users } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { buttonVariants } from "@/components/ui/button";
+import { CalendarIcon, Users, X } from "lucide-react";
 import { formatWeekRange } from "@/lib/project-utils";
 import { DotacionSparkline } from "@/components/dotacion-sparkline";
+import type { DateRange } from "react-day-picker";
 
 type RoleReq = {
   id: string;
@@ -45,8 +53,10 @@ type Selection = { type: "week"; weekNumber: number } | { type: "role"; roleId: 
 export function GanttChart({ weekPlans }: Props) {
   const [hoveredWeek, setHoveredWeek] = useState<number | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
+  const [roleFilter, setRoleFilter] = useState<Set<string>>(new Set());
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  // Collect all unique roles across all weeks
+  // Collect all unique roles across all weeks (sin filtrar — para poblar el selector)
   const roleMap = new Map<string, { name: string; color: string; category: string }>();
   for (const wp of weekPlans) {
     for (const req of wp.requirements) {
@@ -58,21 +68,49 @@ export function GanttChart({ weekPlans }: Props) {
     }
   }
 
-  const allRoles = Array.from(roleMap.entries())
+  const allRolesUnfiltered = Array.from(roleMap.entries())
     .map(([id, r]) => ({ id, ...r }))
     .sort((a, b) => (categoryOrder[a.category] ?? 9) - (categoryOrder[b.category] ?? 9) || a.name.localeCompare(b.name));
 
-  // Max headcount across weeks (for bar scaling)
+  // ── Filtros ──
+  const filteredWeekPlans = useMemo(() => {
+    if (!dateRange?.from) return weekPlans;
+    const from = dateRange.from;
+    const to = dateRange.to ?? dateRange.from;
+    return weekPlans.filter((wp) => wp.endDate >= from && wp.startDate <= to);
+  }, [weekPlans, dateRange]);
+
+  const allRoles = roleFilter.size === 0 ? allRolesUnfiltered : allRolesUnfiltered.filter((r) => roleFilter.has(r.id));
+
+  function toggleRoleFilter(roleId: string) {
+    setRoleFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(roleId)) next.delete(roleId);
+      else next.add(roleId);
+      return next;
+    });
+  }
+
+  const hasActiveFilters = roleFilter.size > 0 || !!dateRange?.from;
+
+  function clearFilters() {
+    setRoleFilter(new Set());
+    setDateRange(undefined);
+  }
+
+  // Max headcount across semanas filtradas, considerando solo los cargos visibles
   const maxHeadcount = Math.max(
-    ...weekPlans.map((wp) => wp.requirements.reduce((s, r) => s + r.quantity, 0)),
+    ...filteredWeekPlans.map((wp) =>
+      wp.requirements.filter((r) => allRoles.some((ar) => ar.id === r.role.id)).reduce((s, r) => s + r.quantity, 0)
+    ),
     1
   );
 
   const selectedWeekNumber = selection?.type === "week" ? selection.weekNumber : null;
   const selectedRoleId = selection?.type === "role" ? selection.roleId : null;
 
-  const selectedPlan = selectedWeekNumber !== null ? weekPlans.find((w) => w.weekNumber === selectedWeekNumber) : null;
-  const selectedRole = selectedRoleId ? allRoles.find((r) => r.id === selectedRoleId) : null;
+  const selectedPlan = selectedWeekNumber !== null ? filteredWeekPlans.find((w) => w.weekNumber === selectedWeekNumber) : null;
+  const selectedRole = selectedRoleId ? allRolesUnfiltered.find((r) => r.id === selectedRoleId) : null;
 
   function toggleWeek(weekNumber: number) {
     setSelection((prev) =>
@@ -84,9 +122,9 @@ export function GanttChart({ weekPlans }: Props) {
     setSelection((prev) => (prev?.type === "role" && prev.roleId === roleId ? null : { type: "role", roleId }));
   }
 
-  // Datos del cargo seleccionado a través de todas las semanas
+  // Datos del cargo seleccionado a través de las semanas filtradas
   const roleWeeklyData = selectedRoleId
-    ? [...weekPlans]
+    ? [...filteredWeekPlans]
         .sort((a, b) => a.weekNumber - b.weekNumber)
         .map((wp) => ({
           weekNumber: wp.weekNumber,
@@ -101,19 +139,91 @@ export function GanttChart({ weekPlans }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Barra de filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground mr-1">Filtrar por cargo:</span>
+        {allRolesUnfiltered.map((role) => {
+          const isActive = roleFilter.has(role.id);
+          return (
+            <button
+              key={role.id}
+              onClick={() => toggleRoleFilter(role.id)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                isActive ? "text-white border-transparent" : "bg-background hover:bg-muted border-input"
+              }`}
+              style={isActive ? { background: role.color } : undefined}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: isActive ? "white" : role.color }}
+              />
+              {role.name}
+            </button>
+          );
+        })}
+
+        <span className="w-px h-5 bg-border mx-1" />
+
+        <Popover>
+          <PopoverTrigger
+            className={buttonVariants({
+              variant: dateRange?.from ? "default" : "outline",
+              size: "sm",
+              className: "gap-1.5",
+            })}
+          >
+            <CalendarIcon className="w-3.5 h-3.5" />
+            {dateRange?.from
+              ? dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime()
+                ? `${dateRange.from.toLocaleDateString("es-CL", { day: "numeric", month: "short" })} – ${dateRange.to.toLocaleDateString("es-CL", { day: "numeric", month: "short" })}`
+                : dateRange.from.toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+              : "Filtrar por fecha"}
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={setDateRange}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
       {/* Gantt grid */}
       <Card className="border overflow-hidden">
+        {filteredWeekPlans.length === 0 ? (
+          <div className="p-10 text-center text-sm text-muted-foreground">
+            Ninguna semana coincide con el rango de fechas seleccionado.
+          </div>
+        ) : allRoles.length === 0 ? (
+          <div className="p-10 text-center text-sm text-muted-foreground">
+            Ningún cargo coincide con el filtro seleccionado.
+          </div>
+        ) : (
         <div className="overflow-x-auto">
-          <div style={{ minWidth: Math.max(weekPlans.length * 96 + 180, 600) }}>
+          <div style={{ minWidth: Math.max(filteredWeekPlans.length * 96 + 180, 600) }}>
             {/* Header row */}
             <div className="flex border-b bg-muted/30">
               <div className="w-44 flex-shrink-0 px-4 py-3 border-r">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cargo</span>
               </div>
-              {weekPlans.map((wp) => {
+              {filteredWeekPlans.map((wp) => {
                 const isSelected = selectedWeekNumber === wp.weekNumber;
                 const isHovered = hoveredWeek === wp.weekNumber;
-                const weekTotal = wp.requirements.reduce((s, r) => s + r.quantity, 0);
+                const weekTotal = wp.requirements
+                  .filter((r) => allRoles.some((ar) => ar.id === r.role.id))
+                  .reduce((s, r) => s + r.quantity, 0);
                 return (
                   <button
                     key={wp.id}
@@ -140,10 +250,14 @@ export function GanttChart({ weekPlans }: Props) {
             {/* Headcount bar row */}
             <div className="flex border-b bg-background">
               <div className="w-44 flex-shrink-0 px-4 py-2 border-r flex items-center">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dotación total</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Dotación {hasActiveFilters ? "filtrada" : "total"}
+                </span>
               </div>
-              {weekPlans.map((wp) => {
-                const total = wp.requirements.reduce((s, r) => s + r.quantity, 0);
+              {filteredWeekPlans.map((wp) => {
+                const total = wp.requirements
+                  .filter((r) => allRoles.some((ar) => ar.id === r.role.id))
+                  .reduce((s, r) => s + r.quantity, 0);
                 const pct = (total / maxHeadcount) * 100;
                 const isSelected = selectedWeekNumber === wp.weekNumber;
                 return (
@@ -181,7 +295,7 @@ export function GanttChart({ weekPlans }: Props) {
                           {categoryLabel[role.category]}
                         </span>
                       </div>
-                      {weekPlans.map((wp) => (
+                      {filteredWeekPlans.map((wp) => (
                         <div
                           key={wp.id}
                           className={`flex-1 min-w-[88px] border-r last:border-r-0 ${selectedWeekNumber === wp.weekNumber ? "bg-primary/5" : ""}`}
@@ -208,7 +322,7 @@ export function GanttChart({ weekPlans }: Props) {
                         {role.name}
                       </span>
                     </button>
-                    {weekPlans.map((wp) => {
+                    {filteredWeekPlans.map((wp) => {
                       const req = wp.requirements.find((r) => r.role.id === role.id);
                       const qty = req?.quantity ?? 0;
                       const isWeekSelected = selectedWeekNumber === wp.weekNumber;
@@ -236,6 +350,7 @@ export function GanttChart({ weekPlans }: Props) {
             })}
           </div>
         </div>
+        )}
       </Card>
 
       {/* Week detail panel */}
@@ -312,7 +427,7 @@ export function GanttChart({ weekPlans }: Props) {
                 <div>
                   <h3 className="font-semibold">{selectedRole.name} — Detalle del cargo</h3>
                   <p className="text-sm text-muted-foreground">
-                    {categoryLabel[selectedRole.category]} · activo en {roleWeeksActive} de {weekPlans.length} semanas
+                    {categoryLabel[selectedRole.category]} · activo en {roleWeeksActive} de {filteredWeekPlans.length} semanas
                   </p>
                 </div>
               </div>
@@ -321,17 +436,17 @@ export function GanttChart({ weekPlans }: Props) {
               </Badge>
             </div>
 
-            {/* Curva del cargo a lo largo del proyecto */}
+            {/* Curva del cargo a lo largo de las semanas filtradas */}
             <div className="rounded-lg bg-muted/40 px-3 pt-3 pb-2 mb-4">
               <DotacionSparkline data={roleWeeklyData} height={64} color={selectedRole.color} />
               <div className="flex justify-between text-[10px] text-muted-foreground px-1 mt-1">
-                <span>S1</span>
+                <span>{roleWeeklyData[0] ? `S${roleWeeklyData[0].weekNumber}` : ""}</span>
                 {roleMaxWeek && roleMaxWeek.total > 0 && (
                   <span className="font-medium text-foreground">
                     Pico: {roleMaxWeek.total} personas en S{roleMaxWeek.weekNumber}
                   </span>
                 )}
-                <span>S{weekPlans.length}</span>
+                <span>{roleWeeklyData.length ? `S${roleWeeklyData[roleWeeklyData.length - 1].weekNumber}` : ""}</span>
               </div>
             </div>
 

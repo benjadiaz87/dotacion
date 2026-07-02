@@ -47,8 +47,68 @@ model Role {
   color    String @default("#3b82f6")
 
   requirements RoleRequirement[]
+  assignments  WorkerAssignment[]
 
   @@map("roles")
+}
+
+model Worker {
+  id        String   @id @default(cuid())
+  rut       String   @unique
+  fullName  String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  documents   WorkerDocument[]
+  assignments WorkerAssignment[]
+
+  @@map("workers")
+}
+
+model DocumentType {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  required Boolean @default(true)
+
+  documents WorkerDocument[]
+
+  @@map("document_types")
+}
+
+model WorkerDocument {
+  id             String   @id @default(cuid())
+  status         String   @default("PENDING")
+  fileUrl        String
+  fileName       String
+  documentNumber String?
+  uploadedAt     DateTime @default(now())
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  documentTypeId String
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id])
+
+  @@unique([workerId, documentTypeId])
+  @@map("worker_documents")
+}
+
+model WorkerAssignment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  weekPlanId String
+  weekPlan   WeekPlan @relation(fields: [weekPlanId], references: [id], onDelete: Cascade)
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([workerId, weekPlanId])
+  @@map("worker_assignments")
 }
 
 model WeekPlan {
@@ -59,8 +119,9 @@ model WeekPlan {
   notes      String?
 
   projectId    String
-  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   requirements RoleRequirement[]
+  assignments  WorkerAssignment[]
 
   @@unique([projectId, weekNumber])
   @@map("week_plans")

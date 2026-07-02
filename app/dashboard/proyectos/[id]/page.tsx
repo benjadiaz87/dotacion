@@ -1,21 +1,28 @@
-import { getProject } from "@/lib/actions/projects";
+import { getProject, getRoles } from "@/lib/actions/projects";
+import { getProjectDotacionByWeek, getProjectCriticalForecast } from "@/lib/actions/workers";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Building2, CalendarDays, MapPin, Users } from "lucide-react";
 import Link from "next/link";
-import { formatDate, getTotalHeadcount, statusConfig } from "@/lib/project-utils";
-import { GanttChart } from "@/components/gantt-chart";
+import { formatDate, getProjectProgress, getTotalHeadcount, statusConfig } from "@/lib/project-utils";
+import { ProjectViewTabs } from "@/components/project-view-tabs";
 import { ProjectActions } from "@/components/project-actions";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await getProject(id);
+  const [project, weeksData, criticalForecast, roles] = await Promise.all([
+    getProject(id),
+    getProjectDotacionByWeek(id),
+    getProjectCriticalForecast(id),
+    getRoles(),
+  ]);
 
   if (!project) notFound();
 
   const sc = statusConfig[project.status as keyof typeof statusConfig];
   const totalHeadcount = getTotalHeadcount(project.weekPlans);
+  const projectProgress = getProjectProgress(project.startDate, project.weeks);
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -90,11 +97,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         ))}
       </div>
 
-      {/* Gantt */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Vista Gantt — Dotación por semana</h2>
-        <GanttChart weekPlans={project.weekPlans} startDate={project.startDate} />
-      </div>
+      {/* Dotación / Gantt toggle */}
+      <ProjectViewTabs
+        weeksData={weeksData}
+        criticalForecast={criticalForecast}
+        projectProgress={projectProgress}
+        weekPlans={project.weekPlans}
+        startDate={project.startDate}
+        roles={roles}
+      />
     </div>
   );
 }

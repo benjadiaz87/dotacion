@@ -1,24 +1,16 @@
 import { getProjects } from "@/lib/actions/projects";
+import { getCompanyStats } from "@/lib/actions/workers";
 import { auth } from "@/lib/auth";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  CalendarDays,
-  FolderKanban,
-  MapPin,
-  Plus,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertTriangle, Clock, FolderKanban, Plus, TrendingUp, UserCheck, Users } from "lucide-react";
 import Link from "next/link";
-import { formatDate, getProjectProgress, getTotalHeadcount, getSparklineData, statusConfig } from "@/lib/project-utils";
-import { DotacionSparkline } from "@/components/dotacion-sparkline";
+import { getTotalHeadcount } from "@/lib/project-utils";
+import { ProjectsFilteredGrid } from "@/components/projects-filtered-grid";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const projects = await getProjects();
+  const [projects, companyStats] = await Promise.all([getProjects(), getCompanyStats()]);
 
   const active = projects.filter((p) => p.status === "ACTIVE");
   const totalWorkers = projects.reduce((sum, p) => sum + getTotalHeadcount(p.weekPlans), 0);
@@ -42,7 +34,70 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs de llenado de cargos (hoy, cross-proyecto) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <Card className={`border shadow-sm ${companyStats.vacantesTotal > 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${companyStats.vacantesTotal > 0 ? "bg-red-100" : "bg-emerald-100"}`}>
+              <AlertTriangle className={`w-5 h-5 ${companyStats.vacantesTotal > 0 ? "text-red-600" : "text-emerald-600"}`} />
+            </div>
+            <div>
+              <p className={`text-2xl font-bold ${companyStats.vacantesTotal > 0 ? "text-red-800" : "text-emerald-800"}`}>
+                {companyStats.vacantesTotal}
+              </p>
+              <p className={`text-sm ${companyStats.vacantesTotal > 0 ? "text-red-700" : "text-emerald-700"}`}>
+                Vacantes hoy (todos los proyectos)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border shadow-sm bg-blue-50 border-blue-200">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-100">
+              <UserCheck className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-800">{companyStats.poolDisponible}</p>
+              <p className="text-sm text-blue-700">Habilitados sin asignar</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-violet-50">
+              <Clock className="w-5 h-5 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">
+                {companyStats.tiempoPromedioPrimeraAsignacionDias !== null
+                  ? `${companyStats.tiempoPromedioPrimeraAsignacionDias}d`
+                  : "—"}
+              </p>
+              <p className="text-sm text-muted-foreground">Tiempo prom. 1ª asignación</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {companyStats.vacantesTotal > 0 && companyStats.projectsBreakdown.some((p) => p.vacantes > 0) && (
+        <div className="flex flex-wrap gap-2 mb-8">
+          {companyStats.projectsBreakdown
+            .filter((p) => p.vacantes > 0)
+            .map((p) => (
+              <Link
+                key={p.projectId}
+                href={`/dashboard/proyectos/${p.projectId}`}
+                className="text-xs px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+              >
+                {p.projectName}: {p.vacantes} vacante{p.vacantes !== 1 ? "s" : ""}
+              </Link>
+            ))}
+        </div>
+      )}
+
+      {/* KPIs generales */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           {
@@ -81,10 +136,10 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Proyectos vigentes */}
+      {/* Proyectos */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Proyectos vigentes</h2>
+          <h2 className="text-lg font-semibold">Proyectos</h2>
           <Link href="/dashboard/proyectos">
             <Button variant="ghost" size="sm" className="text-primary hover:text-primary">
               Ver todos
@@ -92,86 +147,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {projects.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <FolderKanban className="w-12 h-12 text-muted-foreground/40 mb-4" />
-              <h3 className="font-semibold text-foreground mb-1">Sin proyectos aún</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Crea tu primer proyecto para comenzar a gestionar dotación
-              </p>
-              <Link href="/dashboard/proyectos/nuevo">
-                <Button size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" /> Crear proyecto
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {projects.map((project) => {
-              const progress = getProjectProgress(project.startDate, project.weeks);
-              const headcount = getTotalHeadcount(project.weekPlans);
-              const sc = statusConfig[project.status as keyof typeof statusConfig];
-              const sparkData = getSparklineData(project.weekPlans);
-
-              return (
-                <Link key={project.id} href={`/dashboard/proyectos/${project.id}`}>
-                  <Card className="border shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-foreground truncate">{project.name}</h3>
-                          {project.client && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{project.client}</p>
-                          )}
-                        </div>
-                        <Badge variant="outline" className={`text-xs shrink-0 ${sc.color}`}>
-                          {sc.label}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0 space-y-4">
-                      {/* Curva de dotación */}
-                      <div className="rounded-lg bg-muted/40 px-2 pt-2 pb-1">
-                        <DotacionSparkline data={sparkData} height={52} />
-                        <div className="flex justify-between text-[10px] text-muted-foreground px-1 mt-0.5">
-                          <span>S1</span>
-                          <span className="font-medium text-foreground">
-                            {headcount.toLocaleString("es-CL")} personas totales
-                          </span>
-                          <span>S{project.weeks}</span>
-                        </div>
-                      </div>
-
-                      {project.location && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <MapPin className="w-3.5 h-3.5" />
-                          {project.location}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <CalendarDays className="w-3.5 h-3.5" />
-                          {formatDate(project.startDate)} · {project.weeks} semanas
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                          <span>Avance del proyecto</span>
-                          <span className="font-medium text-foreground">{progress}%</span>
-                        </div>
-                        <Progress value={progress} className="h-1.5" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        <ProjectsFilteredGrid projects={projects} />
       </div>
     </div>
   );

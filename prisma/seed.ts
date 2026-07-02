@@ -157,6 +157,61 @@ async function main() {
     }
   }
 
+  // Catálogo de documentos exigibles
+  await prisma.documentType.upsert({
+    where: { name: "Cédula de Identidad" },
+    update: {},
+    create: { name: "Cédula de Identidad", required: true },
+  });
+  const cedula = await prisma.documentType.findUniqueOrThrow({
+    where: { name: "Cédula de Identidad" },
+  });
+
+  // Trabajadores demo
+  const workersData = [
+    { rut: "12.345.678-9", fullName: "Pedro Soto Martínez", role: "Operador de Bulldozer", habilitado: true },
+    { rut: "13.456.789-0", fullName: "Luis Fernández Rojas", role: "Operador de Bulldozer", habilitado: true },
+    { rut: "14.567.890-1", fullName: "Carlos Muñoz Díaz", role: "Operador de Bulldozer", habilitado: false },
+    { rut: "15.678.901-2", fullName: "Ana Torres Vega", role: "Prevencionista de Riesgos", habilitado: true },
+    { rut: "16.789.012-3", fullName: "María González Pino", role: "Jefe de Oficina Técnica", habilitado: true },
+  ];
+
+  const weekPlansAll = await prisma.weekPlan.findMany({ where: { projectId: project.id } });
+
+  for (const w of workersData) {
+    const worker = await prisma.worker.upsert({
+      where: { rut: w.rut },
+      update: { fullName: w.fullName },
+      create: { rut: w.rut, fullName: w.fullName },
+    });
+
+    if (w.habilitado) {
+      await prisma.workerDocument.upsert({
+        where: { workerId_documentTypeId: { workerId: worker.id, documentTypeId: cedula.id } },
+        update: { status: "APPROVED" },
+        create: {
+          workerId: worker.id,
+          documentTypeId: cedula.id,
+          fileUrl: "/uploads/demo-cedula.pdf",
+          fileName: "cedula-demo.pdf",
+          status: "APPROVED",
+        },
+      });
+    }
+
+    const roleId = roleMap[w.role];
+    if (!roleId) continue;
+
+    // Asignar al trabajador a todas las semanas del proyecto demo en su cargo
+    for (const wp of weekPlansAll) {
+      await prisma.workerAssignment.upsert({
+        where: { workerId_weekPlanId: { workerId: worker.id, weekPlanId: wp.id } },
+        update: { roleId },
+        create: { workerId: worker.id, weekPlanId: wp.id, roleId },
+      });
+    }
+  }
+
   console.log("✅ Seed completado");
   console.log("   Email: admin@faenas.cl");
   console.log("   Password: admin123");
