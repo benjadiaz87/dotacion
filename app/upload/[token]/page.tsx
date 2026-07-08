@@ -57,7 +57,7 @@ export default async function WorkerUploadPage({ params }: { params: Promise<{ t
           </div>
           <div>
             <p className="text-sm font-bold text-foreground">Portal de documentos</p>
-            <p className="text-xs text-muted-foreground">DotaciónFaenas</p>
+            <p className="text-xs text-muted-foreground">Dotia</p>
           </div>
         </div>
       </div>

@@ -105,7 +105,7 @@ export default function LoginPage() {
           className="flex items-center gap-3 relative z-10"
         >
           <BrandMark size={40} className="drop-shadow-lg" />
-          <span className="text-xl font-bold text-white">DotaciónFaenas</span>
+          <span className="text-xl font-bold text-white">Dotia</span>
         </motion.div>
 
         <motion.div
@@ -171,7 +171,7 @@ export default function LoginPage() {
           {/* Logo mobile */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
             <BrandMark size={36} />
-            <span className="text-lg font-bold">DotaciónFaenas</span>
+            <span className="text-lg font-bold">Dotia</span>
           </div>
 
           <div className="mb-8">

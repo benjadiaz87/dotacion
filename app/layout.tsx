@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "DotaciónFaenas — Plataforma de Gestión de Personal",
+  title: "Dotia — Dotación inteligente para faenas",
   description: "Gestión de dotación de personas en faenas mineras y constructivas",
 };
 

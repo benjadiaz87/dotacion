@@ -57,7 +57,7 @@ export function Sidebar({ user }: SidebarProps) {
         <BrandMark size={36} className="flex-shrink-0 drop-shadow-lg" />
         <div>
           <p className="text-sm font-bold leading-none" style={{ color: "var(--sidebar-foreground)" }}>
-            DotaciónFaenas
+            Dotia
           </p>
           <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
             Gestión de Dotación

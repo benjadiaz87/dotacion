@@ -1,6 +1,6 @@
 "use client";
 
-// Marca de DotaciónFaenas: tres chevrons ascendentes (el pipeline de
+// Marca de Dotia: tres chevrons ascendentes (el pipeline de
 // habilitación) sobre un tile con gradiente. Reemplaza el ícono genérico.
 export function BrandMark({ size = 36, className = "" }: { size?: number; className?: string }) {
   return (
@@ -11,7 +11,7 @@ export function BrandMark({ size = 36, className = "" }: { size?: number; classN
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="DotaciónFaenas"
+      aria-label="Dotia"
     >
       <defs>
         <linearGradient id="bm-tile" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
