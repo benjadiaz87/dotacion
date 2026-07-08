@@ -29,7 +29,18 @@ export type LicenciaValidationResult = {
   diasRestantes: number | null;
 };
 
-export async function validateLicenciaDoc(workerDocumentId: string): Promise<LicenciaValidationResult> {
+function getMime(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "jpg";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "png") return "image/png";
+  return "image/jpeg";
+}
+
+export async function validateLicenciaDoc(
+  workerDocumentId: string,
+  backBase64?: string,   // reverso en base64, enviado desde el cliente
+  backFileName?: string,
+): Promise<LicenciaValidationResult> {
   const doc = await db.workerDocument.findUnique({
     where: { id: workerDocumentId },
     include: { worker: { select: { rut: true } } },
@@ -39,21 +50,24 @@ export async function validateLicenciaDoc(workerDocumentId: string): Promise<Lic
 
   const filePath = path.join(process.cwd(), "public", doc.fileUrl);
   const buffer = await readFile(filePath);
-  const base64 = buffer.toString("base64");
-  const ext = doc.fileName.split(".").pop()?.toLowerCase() ?? "jpg";
-  const isPdf = ext === "pdf";
-  const mimeType = isPdf ? undefined : ext === "png" ? "image/png" : "image/jpeg";
+  const frontBase64 = buffer.toString("base64");
 
-  const body: Record<string, string> = isPdf
-    ? { pdf: base64 }
-    : { image: base64, mimeType: mimeType! };
+  const body: Record<string, string> = {
+    front: frontBase64,
+    frontMime: getMime(doc.fileName),
+    workerRut: doc.worker.rut,
+  };
 
-  body.workerRut = doc.worker.rut;
+  if (backBase64) {
+    body.back = backBase64;
+    body.backMime = getMime(backFileName ?? "back.jpg");
+  }
 
   const res = await fetch(`${VERIFICADOR_URL}/validate/licencia`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    // Los archivos pueden ser grandes — sin timeout corto
   });
 
   if (!res.ok) throw new Error(`Error validando licencia: ${await res.text()}`);
