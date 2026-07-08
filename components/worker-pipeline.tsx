@@ -5,6 +5,7 @@ import type { WorkerPipelineData, StageWithDocs } from "@/lib/actions/pipeline";
 import { advanceWorkerStage, updateDocumentStatus } from "@/lib/actions/pipeline";
 import { DocumentUploadForm } from "@/components/document-upload-form";
 import { DocumentVerifyPanel } from "@/components/document-verify-panel";
+import { DocumentAntecedentesPanel } from "@/components/document-antecedentes-panel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -21,6 +22,9 @@ import confetti from "canvas-confetti";
 
 const CARNET_KEYWORDS = ["cédula", "cedula", "carnet", "identidad"];
 const isCarnetType = (name: string) => CARNET_KEYWORDS.some((k) => name.toLowerCase().includes(k));
+
+const ANTECEDENTES_KEYWORDS = ["antecedente", "antecedentes"];
+const isAntecedentesType = (name: string) => ANTECEDENTES_KEYWORDS.some((k) => name.toLowerCase().includes(k));
 
 const STAGE_ICONS = [Clipboard, FileText, Hammer, ShieldCheck];
 
@@ -237,6 +241,13 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (
               <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} />
+            ) : isAntecedentesType(doc.documentType.name) ? (
+              <DocumentAntecedentesPanel
+                documentId={doc.uploaded.id}
+                fileUrl={doc.uploaded.fileUrl}
+                fileName={doc.uploaded.fileName}
+                status={doc.uploaded.status}
+              />
             ) : (
               <DocumentVerifyPanel
                 documentId={doc.uploaded.id}
