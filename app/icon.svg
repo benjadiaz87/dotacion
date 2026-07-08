@@ -1,0 +1,18 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6d4aff"/>
+      <stop offset="55%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#2f6fed"/>
+    </linearGradient>
+    <linearGradient id="chev" x1="10" y1="38" x2="38" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="white" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="white"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="46" height="46" rx="13" fill="url(#tile)"/>
+  <rect x="1" y="1" width="46" height="46" rx="13" stroke="white" stroke-opacity="0.14"/>
+  <path d="M11 30 L17 24 L11 18" stroke="url(#chev)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+  <path d="M20 32 L27 24 L20 16" stroke="url(#chev)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.78"/>
+  <path d="M29 34 L38 24 L29 14" stroke="url(#chev)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
