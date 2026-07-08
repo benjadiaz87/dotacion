@@ -70,8 +70,8 @@ export default function LoginPage() {
               <feGaussianBlur stdDeviation="7" />
             </filter>
           </defs>
-          {/* eco: chevron fantasma desplazado, da profundidad */}
-          <path d="M8 124 L42 80 L8 36" stroke="url(#brand-chev)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.28" />
+          {/* eco: chevron fantasma desplazado, fundido con el fondo */}
+          <path d="M8 124 L42 80 L8 36" stroke="url(#brand-chev)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.12" filter="url(#chev-blur)" />
           {/* halo difuso detrás */}
           <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#chev-blur)" opacity="0.9" />
           {/* trazo principal */}
