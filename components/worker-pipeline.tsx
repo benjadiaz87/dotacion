@@ -139,7 +139,7 @@ function ExceptionForm({ docName, onConfirm, onCancel }: {
 }
 
 // ─── Document row ─────────────────────────────────────────────────────────────
-function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove, onReject, onException }: {
+function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, onApprove, onReject, onException }: {
   doc: StageWithDocs["requirements"][0] & {
     uploaded?: { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null };
     exception?: { justification: string };
@@ -147,6 +147,7 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
   };
   pipeline: WorkerPipelineData;
   stage: StageWithDocs;
+  worker: { fullName: string; rut: string };
   isCurrentStage: boolean;
   isFutureStage: boolean;
   onApprove: (id: string) => void;
@@ -267,7 +268,10 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
                 fileUrl={doc.uploaded.fileUrl}
                 fileName={doc.uploaded.fileName}
                 documentNumber={doc.uploaded.documentNumber}
-                workerRut="" workerName="" status={doc.uploaded.status}
+                workerRut={worker.rut}
+                workerName={worker.fullName}
+                isCarnet={isCarnetType(doc.documentType.name)}
+                status={doc.uploaded.status}
               />
             )
           ) : doc.uploaded ? (
@@ -297,9 +301,10 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
 
 
 // ─── Proceso panel ────────────────────────────────────────────────────────────
-function ProcesoPanel({ stage, pipeline, isCurrentStage, isFutureStage, onAdvanced }: {
+function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, onAdvanced }: {
   stage: StageWithDocs;
   pipeline: WorkerPipelineData;
+  worker: { fullName: string; rut: string };
   isCurrentStage: boolean;
   isFutureStage: boolean;
   onAdvanced: (n: number) => void;
@@ -465,6 +470,7 @@ function ProcesoPanel({ stage, pipeline, isCurrentStage, isFutureStage, onAdvanc
               doc={doc}
               pipeline={pipeline}
               stage={stage}
+              worker={worker}
               isCurrentStage={isCurrentStage}
               isFutureStage={isFutureStage}
               onApprove={approve}
@@ -718,6 +724,7 @@ export function WorkerPipeline({
             <ProcesoPanel
               stage={selectedStage}
               pipeline={pipeline}
+              worker={worker}
               isCurrentStage={isCurrentStage}
               isFutureStage={isFutureStage}
               onAdvanced={handleAdvanced}

@@ -3,6 +3,10 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { updateDocumentStatus } from "@/lib/actions/workers";
+import {
+  extractCarnetFromImage, verifyCarnetInRC, type VerificationResult,
+} from "@/lib/actions/verificar-documento";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Check,
@@ -11,6 +15,9 @@ import {
   ClipboardCopy,
   ExternalLink,
   Loader2,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
   X,
 } from "lucide-react";
 
@@ -23,6 +30,7 @@ interface Props {
   documentNumber: string | null;
   workerRut: string;
   workerName: string;
+  isCarnet?: boolean;
   status: string;
 }
 
@@ -54,10 +62,39 @@ export function DocumentVerifyPanel({
   documentNumber,
   workerRut,
   workerName,
+  isCarnet = false,
   status,
 }: Props) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [autoVerifying, setAutoVerifying] = useState(false);
+  const [autoResult, setAutoResult] = useState<VerificationResult | null>(null);
+
+  async function handleAutoVerify() {
+    setAutoVerifying(true);
+    setAutoResult(null);
+    try {
+      // Extrae RUT y N° de serie del documento y verifica contra RC + ficha
+      const data = await extractCarnetFromImage(documentId);
+      if (!data.rut || !data.documentNumber) {
+        setAutoResult({ valid: false, status: "ERROR", message: "No se pudo leer RUT o N° de serie del documento" });
+        return;
+      }
+      const result = await verifyCarnetInRC(documentId, data.rut, data.documentNumber);
+      setAutoResult(result);
+      if (result.valid) {
+        toast.success("Documento verificado y aprobado automáticamente");
+        setTimeout(() => router.refresh(), 2500);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (e) {
+      setAutoResult({ valid: false, status: "ERROR", message: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setAutoVerifying(false);
+    }
+  }
 
   function setStatus(s: "APPROVED" | "REJECTED") {
     startTransition(async () => {
@@ -112,6 +149,49 @@ export function DocumentVerifyPanel({
       {/* Panel expandido de verificación */}
       {expanded && (
         <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
+
+          {/* Verificación automática (carnet) */}
+          {isCarnet && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleAutoVerify}
+                disabled={autoVerifying || isPending}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold shadow-md shadow-violet-500/20 transition-all disabled:opacity-60"
+              >
+                {autoVerifying
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando con IA + Registro Civil…</>
+                  : <><Sparkles className="w-4 h-4" /> Verificación automática</>}
+              </button>
+
+              {autoResult && (
+                <div className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 ${
+                  autoResult.valid
+                    ? "bg-emerald-50 border-emerald-200"
+                    : "bg-red-50 border-red-200"
+                }`}>
+                  {autoResult.valid
+                    ? <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    : <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />}
+                  <div>
+                    <p className={`text-xs font-bold ${autoResult.valid ? "text-emerald-800" : "text-red-800"}`}>
+                      {autoResult.valid ? "Documento VIGENTE — aprobado" : `Documento ${autoResult.status.replace(/_/g, " ")}`}
+                    </p>
+                    <p className={`text-[11px] mt-0.5 ${autoResult.valid ? "text-emerald-700" : "text-red-700"}`}>
+                      {autoResult.message}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">o verifica manualmente</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Imagen / PDF del documento */}
             <div className="space-y-2">
