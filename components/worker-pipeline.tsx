@@ -198,11 +198,20 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
               <span className="text-[9px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-medium">con excepción</span>
             )}
           </div>
-          {doc.uploaded && (
-            <span className={`text-[10px] font-medium ${STATUS_CFG[doc.uploaded.status]?.text}`}>
-              {STATUS_CFG[doc.uploaded.status]?.label}
-            </span>
-          )}
+          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+            {doc.uploaded && (
+              <span className={`text-[10px] font-medium ${STATUS_CFG[doc.uploaded.status]?.text}`}>
+                {STATUS_CFG[doc.uploaded.status]?.label}
+              </span>
+            )}
+            {doc.uploaded?.status === "APPROVED" && doc.uploaded.documentNumber && (
+              <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                {isCarnetType(doc.documentType.name) ? `Serie: ${doc.uploaded.documentNumber}` :
+                 isAntecedentesType(doc.documentType.name) ? `Folio: ${doc.uploaded.documentNumber}` :
+                 doc.uploaded.documentNumber}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
