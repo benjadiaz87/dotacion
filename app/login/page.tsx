@@ -69,16 +69,25 @@ export default function LoginPage() {
             <filter id="chev-blur" x="-40%" y="-40%" width="180%" height="180%">
               <feGaussianBlur stdDeviation="7" />
             </filter>
+            <filter id="chev-soft" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.8" />
+            </filter>
           </defs>
-          {/* eco: chevron fantasma desplazado, fundido con el fondo */}
-          <path d="M8 124 L42 80 L8 36" stroke="url(#brand-chev)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.12" filter="url(#chev-blur)" />
-          {/* halo difuso detrás */}
-          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#chev-blur)" opacity="0.9" />
-          {/* trazo principal */}
-          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          {/* luz que recorre el trazo */}
+
+          {/* Los tres chevrons del logo: de menor a mayor, difuminándose hacia atrás */}
+
+          {/* 1 — el más pequeño, casi fundido con el fondo */}
+          <path d="M4 102 L22 80 L4 58" stroke="url(#brand-chev)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.14" filter="url(#chev-soft)" />
+
+          {/* 2 — intermedio */}
+          <path d="M22 114 L48 80 L22 46" stroke="url(#brand-chev)" strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.32" filter="url(#chev-soft)" />
+
+          {/* 3 — el más grande y presente, con halo y luz */}
+          <path d="M44 128 L80 80 L44 32" stroke="url(#brand-chev)" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#chev-blur)" opacity="0.9" />
+          <path d="M44 128 L80 80 L44 32" stroke="url(#brand-chev)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.75" />
+          {/* luz que recorre el trazo mayor */}
           <path
-            d="M28 132 L66 80 L28 28"
+            d="M44 128 L80 80 L44 32"
             pathLength={100}
             stroke="rgba(255,255,255,0.55)"
             strokeWidth="3.5"
