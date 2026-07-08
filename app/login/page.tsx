@@ -53,6 +53,29 @@ export default function LoginPage() {
       {/* Panel izquierdo - branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 aurora-intense bg-noise relative overflow-hidden" style={{ background: "var(--sidebar)" }}>
 
+        {/* Chevron de marca: un solo trazo con gradiente y glow, anclado al borde derecho */}
+        <svg
+          viewBox="0 0 100 160"
+          aria-hidden="true"
+          className="absolute pointer-events-none select-none"
+          style={{ width: "420px", height: "672px", right: "-150px", top: "50%", transform: "translateY(-54%)" }}
+        >
+          <defs>
+            <linearGradient id="brand-chev" x1="20" y1="150" x2="80" y2="10" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#7c5cff" stopOpacity="0.05" />
+              <stop offset="55%" stopColor="#6d6bff" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#5aa8ff" stopOpacity="0.38" />
+            </linearGradient>
+            <filter id="chev-blur" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="7" />
+            </filter>
+          </defs>
+          {/* halo difuso detrás */}
+          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#chev-blur)" opacity="0.8" />
+          {/* trazo principal */}
+          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" fill="none" className="chev-seq-2" style={{ ["--chev-base" as string]: 0.85 }} />
+        </svg>
+
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
