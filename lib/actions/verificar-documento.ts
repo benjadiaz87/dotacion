@@ -36,6 +36,13 @@ function getMime(fileName: string): string {
   return "image/jpeg";
 }
 
+// Normaliza RUT para comparación: sin puntos, guiones ni espacios, K mayúscula
+function rutMatches(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  const norm = (r: string) => r.replace(/[.\s-]/g, "").toUpperCase();
+  return norm(a) === norm(b);
+}
+
 export async function validateLicenciaDoc(
   workerDocumentId: string,
 ): Promise<LicenciaValidationResult> {
@@ -66,6 +73,16 @@ export async function validateLicenciaDoc(
   if (!res.ok) throw new Error(`Error validando licencia: ${await res.text()}`);
 
   const result: LicenciaValidationResult & { ok: boolean } = await res.json();
+
+  // Doble chequeo servidor: el RUT leído debe coincidir con el del trabajador
+  if (result.valid && result.data?.rut && !rutMatches(result.data.rut, doc.worker.rut)) {
+    return {
+      ...result,
+      valid: false,
+      status: "RUT_NO_COINCIDE",
+      message: `El RUT de la licencia (${result.data.rut}) no coincide con el del trabajador (${doc.worker.rut})`,
+    };
+  }
 
   // Guarda clase + vigencia como documentNumber para mostrarla en el pipeline
   if (result.data?.clases) {
@@ -151,10 +168,23 @@ export async function verifyAntecedentesInRC(
   workerDocumentId: string,
   folio: string,
   codigoVerificacion: string,
+  rutExtraido?: string | null,
 ): Promise<AntecedentesVerificationResult> {
-  const doc = await db.workerDocument.findUnique({ where: { id: workerDocumentId }, select: { workerId: true } });
+  const doc = await db.workerDocument.findUnique({
+    where: { id: workerDocumentId },
+    select: { workerId: true, worker: { select: { rut: true } } },
+  });
   if (!doc) throw new Error("Documento no encontrado");
   await assertCanUploadFor(doc.workerId);
+
+  // El RUT del certificado debe ser el del trabajador de la ficha
+  if (rutExtraido && !rutMatches(rutExtraido, doc.worker.rut)) {
+    return {
+      valid: false,
+      status: "INVALIDO",
+      message: `El RUT del certificado (${rutExtraido}) no coincide con el del trabajador (${doc.worker.rut})`,
+    };
+  }
 
   const res = await fetch(`${VERIFICADOR_URL}/verify/antecedentes`, {
     method: "POST",
@@ -165,6 +195,16 @@ export async function verifyAntecedentesInRC(
   if (!res.ok) throw new Error(`Error verificando en RC: ${res.status}`);
 
   const result: AntecedentesVerificationResult & { ok: boolean } = await res.json();
+
+  // Si el RC devuelve el RUT confirmado del folio, también debe coincidir
+  if (result.valid && result.confirmedRut && !rutMatches(result.confirmedRut, doc.worker.rut)) {
+    return {
+      ...result,
+      valid: false,
+      status: "INVALIDO",
+      message: `El RUT confirmado por el Registro Civil (${result.confirmedRut}) no coincide con el del trabajador`,
+    };
+  }
 
   if (result.valid) {
     await db.workerDocument.update({
@@ -239,9 +279,21 @@ export async function verifyCarnetInRC(
   rut: string,
   documentNumber: string
 ): Promise<VerificationResult> {
-  const docCheck = await db.workerDocument.findUnique({ where: { id: workerDocumentId }, select: { workerId: true } });
+  const docCheck = await db.workerDocument.findUnique({
+    where: { id: workerDocumentId },
+    select: { workerId: true, worker: { select: { rut: true } } },
+  });
   if (!docCheck) throw new Error("Documento no encontrado");
   await assertCanUploadFor(docCheck.workerId);
+
+  // El RUT leído del carnet debe ser el del trabajador de la ficha
+  if (!rutMatches(rut, docCheck.worker.rut)) {
+    return {
+      valid: false,
+      status: "ERROR",
+      message: `El RUT del carnet (${rut}) no coincide con el del trabajador (${docCheck.worker.rut})`,
+    };
+  }
 
   const res = await fetch(`${VERIFICADOR_URL}/verify/carnet`, {
     method: "POST",
@@ -252,6 +304,16 @@ export async function verifyCarnetInRC(
   if (!res.ok) throw new Error(`Error verificando en RC: ${res.status}`);
 
   const result: VerificationResult & { ok: boolean } = await res.json();
+
+  // Si el RC devuelve el RUT confirmado, también debe coincidir
+  if (result.valid && result.confirmedRut && !rutMatches(result.confirmedRut, docCheck.worker.rut)) {
+    return {
+      ...result,
+      valid: false,
+      status: "ERROR",
+      message: `El RUT confirmado por el Registro Civil (${result.confirmedRut}) no coincide con el del trabajador`,
+    };
+  }
 
   if (result.valid) {
     await db.workerDocument.update({

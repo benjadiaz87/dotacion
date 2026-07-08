@@ -308,7 +308,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           }
 
           setPhase("verifying");
-          const result = await verifyAntecedentesInRC(documentId, data.folio, data.codigoVerificacion);
+          const result = await verifyAntecedentesInRC(documentId, data.folio, data.codigoVerificacion, data.rut);
           setVerificationAnt(result);
           setPhase(result.valid ? "done_ok" : "done_fail");
 
