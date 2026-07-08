@@ -51,7 +51,20 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Panel izquierdo - branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 hero-aurora relative" style={{ background: "var(--sidebar)" }}>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 aurora-intense bg-noise relative overflow-hidden" style={{ background: "var(--sidebar)" }}>
+
+        {/* Watermark: chevrons gigantes recortados por el borde */}
+        <svg
+          viewBox="0 0 48 48"
+          aria-hidden="true"
+          className="absolute pointer-events-none select-none"
+          style={{ width: "640px", height: "640px", right: "-180px", bottom: "-140px", transform: "rotate(-8deg)", opacity: 0.055 }}
+        >
+          <path d="M11 30 L17 24 L11 18" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="chev-seq-1" style={{ ["--chev-base" as string]: 0.4 }} />
+          <path d="M20 32 L27 24 L20 16" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="chev-seq-2" style={{ ["--chev-base" as string]: 0.6 }} />
+          <path d="M29 34 L38 24 L29 14" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="chev-seq-3" style={{ ["--chev-base" as string]: 0.85 }} />
+        </svg>
+
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,11 +81,16 @@ export default function LoginPage() {
           transition={{ duration: 0.6, delay: 0.15 }}
           className="relative z-10"
         >
-          <blockquote className="text-2xl font-medium leading-relaxed text-white/90 mb-6">
-            "La plataforma que transforma la gestión de dotación en faenas mineras y constructivas."
+          {/* Comillas decorativas */}
+          <span aria-hidden="true" className="block text-7xl font-black leading-none mb-2 text-gradient select-none" style={{ opacity: 0.95, filter: "brightness(1.8)" }}>
+            "
+          </span>
+          <blockquote className="text-[1.7rem] font-medium leading-snug mb-6 max-w-md">
+            <span className="text-white/70">La plataforma que transforma la gestión de dotación </span>
+            <span className="text-white font-semibold">en faenas mineras y constructivas.</span>
           </blockquote>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500/40 to-indigo-500/40 ring-1 ring-white/20 flex items-center justify-center text-white font-bold text-sm">
               CF
             </div>
             <div>
@@ -88,8 +106,12 @@ export default function LoginPage() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="grid grid-cols-3 gap-4 relative z-10">
           {STATS.map((s) => (
-            <div key={s.label} className="rounded-xl p-4 backdrop-blur-sm" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <p className="text-2xl font-bold text-white">
+            <div
+              key={s.label}
+              className="relative overflow-hidden rounded-xl p-4 backdrop-blur-md shimmer"
+              style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              <p className="text-2xl font-black text-gradient" style={{ filter: "brightness(1.6)" }}>
                 <CountUp value={s.value} suffix={s.suffix} duration={1.8} />
               </p>
               <p className="text-xs text-white/60 mt-1">{s.label}</p>
