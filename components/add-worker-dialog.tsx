@@ -31,6 +31,17 @@ export function AddWorkerDialog({ roles = [] }: { roles?: RoleOption[] }) {
   const [isPending, startTransition] = useTransition();
 
   const [rut, setRut] = useState("");
+
+  function formatRut(raw: string): string {
+    // Strip everything except digits and k/K
+    const clean = raw.replace(/[^0-9kK]/g, "").toUpperCase();
+    if (clean.length === 0) return "";
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
+    // Add dots every 3 digits from right
+    const bodyFormatted = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return bodyFormatted ? `${bodyFormatted}-${dv}` : dv;
+  }
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -103,7 +114,7 @@ export function AddWorkerDialog({ roles = [] }: { roles?: RoleOption[] }) {
             <Input
               placeholder="12.345.678-9"
               value={rut}
-              onChange={(e) => { setRut(e.target.value); setAlreadyExists(false); }}
+              onChange={(e) => { setRut(formatRut(e.target.value)); setAlreadyExists(false); }}
               onBlur={handleRutBlur}
             />
             {alreadyExists && (
