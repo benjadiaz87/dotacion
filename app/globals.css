@@ -244,3 +244,16 @@
 .chev-seq-1 { animation: chevron-glow 4s ease-in-out infinite; }
 .chev-seq-2 { animation: chevron-glow 4s ease-in-out 0.35s infinite; }
 .chev-seq-3 { animation: chevron-glow 4s ease-in-out 0.7s infinite; }
+
+/* Luz que recorre el trazo del chevron (requiere pathLength="100") */
+@keyframes chev-trace {
+  0%   { stroke-dashoffset: 120; opacity: 0; }
+  15%  { opacity: 1; }
+  60%  { opacity: 1; }
+  75%  { stroke-dashoffset: -100; opacity: 0; }
+  100% { stroke-dashoffset: -100; opacity: 0; }
+}
+.chev-trace {
+  stroke-dasharray: 20 100;
+  animation: chev-trace 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

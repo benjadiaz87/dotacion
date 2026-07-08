@@ -70,10 +70,23 @@ export default function LoginPage() {
               <feGaussianBlur stdDeviation="7" />
             </filter>
           </defs>
+          {/* eco: chevron fantasma desplazado, da profundidad */}
+          <path d="M8 124 L42 80 L8 36" stroke="url(#brand-chev)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.28" />
           {/* halo difuso detrás */}
-          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#chev-blur)" opacity="0.8" />
+          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#chev-blur)" opacity="0.9" />
           {/* trazo principal */}
-          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" fill="none" className="chev-seq-2" style={{ ["--chev-base" as string]: 0.85 }} />
+          <path d="M28 132 L66 80 L28 28" stroke="url(#brand-chev)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          {/* luz que recorre el trazo */}
+          <path
+            d="M28 132 L66 80 L28 28"
+            pathLength={100}
+            stroke="rgba(255,255,255,0.55)"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            className="chev-trace"
+          />
         </svg>
 
         <motion.div
