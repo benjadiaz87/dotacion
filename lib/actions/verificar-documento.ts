@@ -43,6 +43,11 @@ function rutMatches(a: string | null | undefined, b: string | null | undefined):
   return norm(a) === norm(b);
 }
 
+// Mensaje único para el error de RUT en todas las validaciones
+function rutMismatchMessage(rutDocumento: string, rutTrabajador: string): string {
+  return `El RUT del documento (${rutDocumento}) no coincide con el RUT del trabajador (${rutTrabajador})`;
+}
+
 export async function validateLicenciaDoc(
   workerDocumentId: string,
 ): Promise<LicenciaValidationResult> {
@@ -80,7 +85,7 @@ export async function validateLicenciaDoc(
       ...result,
       valid: false,
       status: "RUT_NO_COINCIDE",
-      message: `El RUT de la licencia (${result.data.rut}) no coincide con el del trabajador (${doc.worker.rut})`,
+      message: rutMismatchMessage(result.data.rut, doc.worker.rut),
     };
   }
 
@@ -124,7 +129,7 @@ export type AntecedentesExtracted = {
 
 export type AntecedentesVerificationResult = {
   valid: boolean;
-  status: "VALIDO" | "INVALIDO" | "NO_ENCONTRADO" | "ERROR";
+  status: "VALIDO" | "INVALIDO" | "NO_ENCONTRADO" | "RUT_NO_COINCIDE" | "ERROR";
   message: string;
   confirmedFolio?: string;
   confirmedRut?: string;
@@ -181,8 +186,8 @@ export async function verifyAntecedentesInRC(
   if (rutExtraido && !rutMatches(rutExtraido, doc.worker.rut)) {
     return {
       valid: false,
-      status: "INVALIDO",
-      message: `El RUT del certificado (${rutExtraido}) no coincide con el del trabajador (${doc.worker.rut})`,
+      status: "RUT_NO_COINCIDE",
+      message: rutMismatchMessage(rutExtraido, doc.worker.rut),
     };
   }
 
@@ -201,8 +206,8 @@ export async function verifyAntecedentesInRC(
     return {
       ...result,
       valid: false,
-      status: "INVALIDO",
-      message: `El RUT confirmado por el Registro Civil (${result.confirmedRut}) no coincide con el del trabajador`,
+      status: "RUT_NO_COINCIDE",
+      message: rutMismatchMessage(result.confirmedRut, doc.worker.rut),
     };
   }
 
@@ -228,7 +233,7 @@ export type CarnetExtracted = {
 
 export type VerificationResult = {
   valid: boolean;
-  status: "VIGENTE" | "NO_VIGENTE" | "NO_ENCONTRADO" | "ERROR";
+  status: "VIGENTE" | "NO_VIGENTE" | "NO_ENCONTRADO" | "RUT_NO_COINCIDE" | "ERROR";
   message: string;
   confirmedRut?: string;
   confirmedDocumentNumber?: string;
@@ -290,8 +295,8 @@ export async function verifyCarnetInRC(
   if (!rutMatches(rut, docCheck.worker.rut)) {
     return {
       valid: false,
-      status: "ERROR",
-      message: `El RUT del carnet (${rut}) no coincide con el del trabajador (${docCheck.worker.rut})`,
+      status: "RUT_NO_COINCIDE",
+      message: rutMismatchMessage(rut, docCheck.worker.rut),
     };
   }
 
@@ -310,8 +315,8 @@ export async function verifyCarnetInRC(
     return {
       ...result,
       valid: false,
-      status: "ERROR",
-      message: `El RUT confirmado por el Registro Civil (${result.confirmedRut}) no coincide con el del trabajador`,
+      status: "RUT_NO_COINCIDE",
+      message: rutMismatchMessage(result.confirmedRut, docCheck.worker.rut),
     };
   }
 

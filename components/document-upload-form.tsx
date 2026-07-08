@@ -465,7 +465,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-bold text-white leading-tight">
-                  {verificationLic.valid ? "Licencia VIGENTE" : `Licencia ${verificationLic.status}`}
+                  {verificationLic.valid ? "Licencia VIGENTE" : `Licencia ${verificationLic.status.replace(/_/g, " ")}`}
                 </p>
                 <p className="text-sm text-white/80 mt-0.5">{verificationLic.message}</p>
                 {verificationLic.valid && verificationLic.data.clases && (
@@ -554,7 +554,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-bold text-white leading-tight">
-                  {verificationAnt.valid ? "Certificado VÁLIDO" : `Certificado ${verificationAnt.status}`}
+                  {verificationAnt.valid ? "Certificado VÁLIDO" : `Certificado ${verificationAnt.status.replace(/_/g, " ")}`}
                 </p>
                 <p className="text-sm text-white/80 mt-0.5">
                   {verificationAnt.valid ? "Verificado automáticamente en el Registro Civil de Chile" : verificationAnt.message}
@@ -652,7 +652,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-bold text-white leading-tight">
-                  {verification.valid ? "Documento VIGENTE" : `Documento ${verification.status}`}
+                  {verification.valid ? "Documento VIGENTE" : `Documento ${verification.status.replace(/_/g, " ")}`}
                 </p>
                 <p className="text-sm text-white/80 mt-0.5">
                   {verification.valid
