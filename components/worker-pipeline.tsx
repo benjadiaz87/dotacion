@@ -141,7 +141,7 @@ function ExceptionForm({ docName, onConfirm, onCancel }: {
 // ─── Document row ─────────────────────────────────────────────────────────────
 function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, onApprove, onReject, onException }: {
   doc: StageWithDocs["requirements"][0] & {
-    uploaded?: { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null };
+    uploaded?: { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null; verifyNote: string | null };
     exception?: { justification: string };
     pendingExc?: string;
   };
@@ -239,6 +239,14 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
           )}
         </div>
       </div>
+
+      {/* Motivo de verificación fallida (persistente) */}
+      {doc.uploaded?.verifyNote && doc.uploaded.status !== "APPROVED" && (
+        <div className="mx-4 mb-3 flex gap-2 rounded-md bg-red-50 border border-red-200 px-3 py-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-red-700 font-medium">{doc.uploaded.verifyNote}</p>
+        </div>
+      )}
 
       {/* Exception justification */}
       {(doc.exception || doc.pendingExc) && (

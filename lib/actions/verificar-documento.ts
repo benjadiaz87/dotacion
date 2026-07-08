@@ -48,6 +48,15 @@ function rutMismatchMessage(rutDocumento: string, rutTrabajador: string): string
   return `El RUT del documento (${rutDocumento}) no coincide con el RUT del trabajador (${rutTrabajador})`;
 }
 
+// Persiste el motivo del fallo (o lo limpia si pasó) para mostrarlo en el pipeline
+async function saveVerifyNote(workerDocumentId: string, valid: boolean, message: string) {
+  await db.workerDocument.update({
+    where: { id: workerDocumentId },
+    data: { verifyNote: valid ? null : message },
+  });
+  revalidatePath("/dashboard/trabajadores/[id]", "page");
+}
+
 export async function validateLicenciaDoc(
   workerDocumentId: string,
 ): Promise<LicenciaValidationResult> {
@@ -81,13 +90,11 @@ export async function validateLicenciaDoc(
 
   // Doble chequeo servidor: el RUT leído debe coincidir con el del trabajador
   if (result.valid && result.data?.rut && !rutMatches(result.data.rut, doc.worker.rut)) {
-    return {
-      ...result,
-      valid: false,
-      status: "RUT_NO_COINCIDE",
-      message: rutMismatchMessage(result.data.rut, doc.worker.rut),
-    };
+    const message = rutMismatchMessage(result.data.rut, doc.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { ...result, valid: false, status: "RUT_NO_COINCIDE", message };
   }
+  await saveVerifyNote(workerDocumentId, result.valid, result.message);
 
   // Guarda clase + vigencia como documentNumber para mostrarla en el pipeline
   if (result.data?.clases) {
@@ -184,11 +191,9 @@ export async function verifyAntecedentesInRC(
 
   // El RUT del certificado debe ser el del trabajador de la ficha
   if (rutExtraido && !rutMatches(rutExtraido, doc.worker.rut)) {
-    return {
-      valid: false,
-      status: "RUT_NO_COINCIDE",
-      message: rutMismatchMessage(rutExtraido, doc.worker.rut),
-    };
+    const message = rutMismatchMessage(rutExtraido, doc.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { valid: false, status: "RUT_NO_COINCIDE", message };
   }
 
   const res = await fetch(`${VERIFICADOR_URL}/verify/antecedentes`, {
@@ -203,13 +208,11 @@ export async function verifyAntecedentesInRC(
 
   // Si el RC devuelve el RUT confirmado del folio, también debe coincidir
   if (result.valid && result.confirmedRut && !rutMatches(result.confirmedRut, doc.worker.rut)) {
-    return {
-      ...result,
-      valid: false,
-      status: "RUT_NO_COINCIDE",
-      message: rutMismatchMessage(result.confirmedRut, doc.worker.rut),
-    };
+    const message = rutMismatchMessage(result.confirmedRut, doc.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { ...result, valid: false, status: "RUT_NO_COINCIDE", message };
   }
+  await saveVerifyNote(workerDocumentId, result.valid, result.message);
 
   if (result.valid) {
     await db.workerDocument.update({
@@ -293,11 +296,9 @@ export async function verifyCarnetInRC(
 
   // El RUT leído del carnet debe ser el del trabajador de la ficha
   if (!rutMatches(rut, docCheck.worker.rut)) {
-    return {
-      valid: false,
-      status: "RUT_NO_COINCIDE",
-      message: rutMismatchMessage(rut, docCheck.worker.rut),
-    };
+    const message = rutMismatchMessage(rut, docCheck.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { valid: false, status: "RUT_NO_COINCIDE", message };
   }
 
   const res = await fetch(`${VERIFICADOR_URL}/verify/carnet`, {
@@ -312,13 +313,11 @@ export async function verifyCarnetInRC(
 
   // Si el RC devuelve el RUT confirmado, también debe coincidir
   if (result.valid && result.confirmedRut && !rutMatches(result.confirmedRut, docCheck.worker.rut)) {
-    return {
-      ...result,
-      valid: false,
-      status: "RUT_NO_COINCIDE",
-      message: rutMismatchMessage(result.confirmedRut, docCheck.worker.rut),
-    };
+    const message = rutMismatchMessage(result.confirmedRut, docCheck.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { ...result, valid: false, status: "RUT_NO_COINCIDE", message };
   }
+  await saveVerifyNote(workerDocumentId, result.valid, result.message);
 
   if (result.valid) {
     await db.workerDocument.update({

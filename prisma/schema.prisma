@@ -151,6 +151,7 @@ model WorkerDocument {
   fileUrl        String
   fileName       String
   documentNumber String?
+  verifyNote     String?  // último resultado de verificación fallida (ej: RUT no coincide)
   uploadedAt     DateTime @default(now())
 
   workerId String
