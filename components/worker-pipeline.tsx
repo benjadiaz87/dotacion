@@ -26,6 +26,9 @@ const isCarnetType = (name: string) => CARNET_KEYWORDS.some((k) => name.toLowerC
 const ANTECEDENTES_KEYWORDS = ["antecedente", "antecedentes"];
 const isAntecedentesType = (name: string) => ANTECEDENTES_KEYWORDS.some((k) => name.toLowerCase().includes(k));
 
+const LICENCIA_KEYWORDS = ["licencia", "conducir", "conducción"];
+const isLicenciaType = (name: string) => LICENCIA_KEYWORDS.some((k) => name.toLowerCase().includes(k));
+
 const STAGE_ICONS = [Clipboard, FileText, Hammer, ShieldCheck];
 
 const STAGE_COLORS: Record<number, { active: string; done: string }> = {
@@ -208,6 +211,7 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
               <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                 {isCarnetType(doc.documentType.name) ? `Serie: ${doc.uploaded.documentNumber}` :
                  isAntecedentesType(doc.documentType.name) ? `Folio: ${doc.uploaded.documentNumber}` :
+                 isLicenciaType(doc.documentType.name) ? `Clase: ${doc.uploaded.documentNumber}` :
                  doc.uploaded.documentNumber}
               </span>
             )}
@@ -249,7 +253,7 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
           {isCurrentStage ? (
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (
-              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} />
+              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} isLicencia={isLicenciaType(doc.documentType.name)} />
             ) : isAntecedentesType(doc.documentType.name) ? (
               <DocumentAntecedentesPanel
                 documentId={doc.uploaded.id}

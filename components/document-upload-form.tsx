@@ -7,6 +7,7 @@ import { uploadWorkerDocument } from "@/lib/actions/workers";
 import {
   extractCarnetFromImage, verifyCarnetInRC, type CarnetExtracted, type VerificationResult,
   extractAntecedentesFromPdf, verifyAntecedentesInRC, type AntecedentesExtracted, type AntecedentesVerificationResult,
+  validateLicenciaDoc, type LicenciaValidationResult, type LicenciaExtracted,
 } from "@/lib/actions/verificar-documento";
 import { toast } from "sonner";
 import {
@@ -19,6 +20,7 @@ interface Props {
   documentTypeId: string;
   isCarnet?: boolean;
   isAntecedentes?: boolean;
+  isLicencia?: boolean;
 }
 
 type Phase =
@@ -52,6 +54,12 @@ const PHASE_MESSAGE_ANTECEDENTES: Partial<Record<Phase, { title: string; subtitl
   uploading:  { title: "Subiendo certificado…",         subtitle: "Guardando el PDF en el servidor" },
   extracting: { title: "IA leyendo el certificado…",    subtitle: "Claude extrae folio y código de verificación" },
   verifying:  { title: "Consultando Registro Civil…",   subtitle: "Verificando autenticidad del certificado en el SRCeI" },
+};
+
+const PHASE_MESSAGE_LICENCIA: Partial<Record<Phase, { title: string; subtitle: string }>> = {
+  uploading:  { title: "Subiendo licencia…",            subtitle: "Guardando el archivo en el servidor" },
+  extracting: { title: "IA leyendo la licencia…",       subtitle: "Claude extrae clase, vencimiento y RUT" },
+  verifying:  { title: "Validando vigencia…",           subtitle: "Verificando fecha con extensión legal de 1 año" },
 };
 
 function StepIndicator({ phase }: { phase: Phase }) {
@@ -235,7 +243,7 @@ const PROCESS_STEPS = (rut: string, serie: string, valid: boolean) => [
   },
 ];
 
-export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes }: Props) {
+export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
@@ -244,9 +252,10 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const [extractedAnt, setExtractedAnt] = useState<AntecedentesExtracted | null>(null);
   const [verification, setVerification] = useState<VerificationResult | null>(null);
   const [verificationAnt, setVerificationAnt] = useState<AntecedentesVerificationResult | null>(null);
+  const [verificationLic, setVerificationLic] = useState<LicenciaValidationResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const phaseMsg = isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
+  const phaseMsg = isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
   const isProcessing = ["uploading", "extracting", "verifying"].includes(phase);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -256,6 +265,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
     setExtractedAnt(null);
     setVerification(null);
     setVerificationAnt(null);
+    setVerificationLic(null);
   }
 
   function handleSubmit(formData: FormData) {
@@ -263,6 +273,26 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
       try {
         setPhase("uploading");
         const { documentId } = await uploadWorkerDocument(workerId, documentTypeId, formData);
+
+        // ── Licencia de conducir ─────────────────────────────────────────────
+        if (isLicencia) {
+          setPhase("extracting");
+          // validate/licencia hace extracción + validación en un solo paso
+          const result = await validateLicenciaDoc(documentId);
+          setVerificationLic(result);
+          setPhase(result.valid ? "done_ok" : "done_fail");
+
+          if (result.valid) {
+            toast.success("Licencia vigente — aprobada automáticamente");
+          } else {
+            toast.error(`Licencia: ${result.message}`);
+          }
+
+          formRef.current?.reset();
+          setFile(null);
+          setTimeout(() => router.refresh(), 3000);
+          return;
+        }
 
         // ── Certificado de antecedentes ──────────────────────────────────────
         if (isAntecedentes && file && /\.pdf$/i.test(file.name)) {
@@ -355,31 +385,33 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             </div>
             <div className="text-center">
               <p className={`text-sm font-semibold ${file ? "text-primary" : "text-foreground"}`}>
-                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : isAntecedentes ? "Selecciona el certificado PDF" : "Selecciona el documento")}
+                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : isAntecedentes ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona la foto o PDF de la licencia" : "Selecciona el documento")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isCarnet ? "JPG o PNG — frente del carnet" : isAntecedentes ? "PDF del Registro Civil" : "PDF, JPG o PNG"}
+                {isCarnet ? "JPG o PNG — frente del carnet" : isAntecedentes ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF" : "PDF, JPG o PNG"}
               </p>
             </div>
             <input
               type="file"
               name="file"
-              accept={isCarnet ? ".jpg,.jpeg,.png" : isAntecedentes ? ".pdf" : ".pdf,.jpg,.jpeg,.png"}
+              accept={isCarnet ? ".jpg,.jpeg,.png" : isAntecedentes ? ".pdf" : isLicencia ? ".jpg,.jpeg,.png,.pdf" : ".pdf,.jpg,.jpeg,.png"}
               className="hidden"
               onChange={handleFileChange}
               required
             />
           </label>
 
-          {(isCarnet || isAntecedentes) && (
+          {(isCarnet || isAntecedentes || isLicencia) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
-              La IA extrae los datos y verifica autenticidad en Registro Civil automáticamente
+              {isLicencia
+                ? "La IA extrae los datos y valida la vigencia con extensión legal de +1 año"
+                : "La IA extrae los datos y verifica autenticidad en Registro Civil automáticamente"}
             </p>
           )}
 
           <Button type="submit" disabled={!file} className="w-full gap-2 h-10 font-semibold">
-            {(isCarnet || isAntecedentes) ? (
+            {(isCarnet || isAntecedentes || isLicencia) ? (
               <><ScanLine className="w-4 h-4" /> Subir y verificar automáticamente</>
             ) : "Subir documento"}
           </Button>
@@ -415,6 +447,95 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
           {/* Extracted data — antecedentes */}
           {extractedAnt && <ExtractedCardAntecedentes data={extractedAnt} dim={phase === "verifying"} />}
+        </div>
+      )}
+
+      {/* Result — licencia */}
+      {verificationLic && (phase === "done_ok" || phase === "done_fail") && (
+        <div className={`rounded-2xl overflow-hidden border shadow-lg ${
+          verificationLic.valid ? "border-emerald-200 shadow-emerald-100" : "border-red-200 shadow-red-100"
+        }`}>
+          <div className={`relative px-5 py-5 overflow-hidden ${
+            verificationLic.valid ? "bg-gradient-to-br from-emerald-500 to-emerald-600" : "bg-gradient-to-br from-red-500 to-red-600"
+          }`}>
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, white 0%, transparent 60%)" }} />
+            <div className="relative flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                {verificationLic.valid ? <ShieldCheck className="w-6 h-6 text-white" /> : <ShieldAlert className="w-6 h-6 text-white" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-white leading-tight">
+                  {verificationLic.valid ? "Licencia VIGENTE" : `Licencia ${verificationLic.status}`}
+                </p>
+                <p className="text-sm text-white/80 mt-0.5">{verificationLic.message}</p>
+                {verificationLic.valid && verificationLic.data.clases && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {verificationLic.data.clases.split(",").map(c => (
+                      <div key={c} className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
+                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">Clase</p>
+                        <p className="text-xs font-bold text-white font-mono">{c.trim()}</p>
+                      </div>
+                    ))}
+                    {verificationLic.diasRestantes !== null && (
+                      <div className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
+                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">Días restantes</p>
+                        <p className="text-xs font-bold text-white font-mono">{verificationLic.diasRestantes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {verificationLic.valid && (
+            <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100">
+              <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest mb-3">Datos verificados</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {[
+                  { label: "Titular",           value: verificationLic.data.fullName },
+                  { label: "RUT",               value: verificationLic.data.rut },
+                  { label: "Vencimiento real",  value: verificationLic.fechaVencimientoReal },
+                  { label: "Vencimiento +1 año",value: verificationLic.fechaVencimientoExtendida },
+                  { label: "Restricciones",     value: verificationLic.data.restricciones },
+                ].filter(f => f.value).map(({ label, value }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-2.5 h-2.5 text-emerald-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
+                      <p className="text-xs font-bold text-emerald-900 truncate">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="px-5 py-4 bg-white">
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Proceso ejecutado</p>
+            <div className="relative">
+              <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
+              <div className="space-y-4">
+                {[
+                  { icon: <Brain className="w-4 h-4" />, color: "bg-violet-100 text-violet-600", label: "Claude Vision (Anthropic)", detail: "Extrajo clase, fecha de vencimiento y RUT directamente del documento." },
+                  { icon: <Calendar className="w-4 h-4" />, color: "bg-blue-100 text-blue-600", label: "Extensión legal aplicada (+1 año)", detail: `Vencimiento original ${verificationLic.fechaVencimientoReal} → extendido hasta ${verificationLic.fechaVencimientoExtendida}.` },
+                  verificationLic.valid
+                    ? { icon: <Sparkles className="w-4 h-4" />, color: "bg-emerald-100 text-emerald-600", label: "Aprobación automática", detail: "La licencia fue aprobada sin intervención manual." }
+                    : { icon: <X className="w-4 h-4" />, color: "bg-red-100 text-red-600", label: "Revisión manual requerida", detail: verificationLic.message },
+                ].map(({ icon, color, label, detail }, i) => (
+                  <div key={i} className="flex gap-3 relative">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 z-10 ${color}`}>{icon}</div>
+                    <div className="pt-1 min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground leading-none">{label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -616,10 +737,10 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
         <Button
           size="sm"
           variant="outline"
-          onClick={() => { setPhase("idle"); setExtracted(null); setExtractedAnt(null); setVerification(null); setVerificationAnt(null); }}
+          onClick={() => { setPhase("idle"); setExtracted(null); setExtractedAnt(null); setVerification(null); setVerificationAnt(null); setVerificationLic(null); }}
           className="w-full"
         >
-          {isAntecedentes ? "Intentar con otro PDF" : "Intentar con otra imagen"}
+          {isAntecedentes ? "Intentar con otro PDF" : isLicencia ? "Intentar con otro archivo" : "Intentar con otra imagen"}
         </Button>
       )}
     </div>

@@ -7,6 +7,78 @@ import { revalidatePath } from "next/cache";
 import { readFile } from "fs/promises";
 import path from "path";
 
+// ─── Licencia de conducir ──────────────────────────────────────────────────────
+
+export type LicenciaExtracted = {
+  rut: string | null;
+  fullName: string | null;
+  fechaNacimiento: string | null;
+  fechaVencimiento: string | null;
+  clases: string | null;
+  restricciones: string | null;
+  numero: string | null;
+};
+
+export type LicenciaValidationResult = {
+  valid: boolean;
+  status: "VIGENTE" | "VENCIDA" | "RUT_NO_COINCIDE" | "NO_LEGIBLE" | "ERROR";
+  message: string;
+  data: LicenciaExtracted;
+  fechaVencimientoReal: string | null;
+  fechaVencimientoExtendida: string | null;
+  diasRestantes: number | null;
+};
+
+export async function validateLicenciaDoc(workerDocumentId: string): Promise<LicenciaValidationResult> {
+  const doc = await db.workerDocument.findUnique({
+    where: { id: workerDocumentId },
+    include: { worker: { select: { rut: true } } },
+  });
+  if (!doc) throw new Error("Documento no encontrado");
+  await assertCanUploadFor(doc.workerId);
+
+  const filePath = path.join(process.cwd(), "public", doc.fileUrl);
+  const buffer = await readFile(filePath);
+  const base64 = buffer.toString("base64");
+  const ext = doc.fileName.split(".").pop()?.toLowerCase() ?? "jpg";
+  const isPdf = ext === "pdf";
+  const mimeType = isPdf ? undefined : ext === "png" ? "image/png" : "image/jpeg";
+
+  const body: Record<string, string> = isPdf
+    ? { pdf: base64 }
+    : { image: base64, mimeType: mimeType! };
+
+  body.workerRut = doc.worker.rut;
+
+  const res = await fetch(`${VERIFICADOR_URL}/validate/licencia`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) throw new Error(`Error validando licencia: ${await res.text()}`);
+
+  const result: LicenciaValidationResult & { ok: boolean } = await res.json();
+
+  // Guarda clase de licencia como documentNumber para referencia
+  if (result.data?.clases) {
+    await db.workerDocument.update({
+      where: { id: workerDocumentId },
+      data: { documentNumber: result.data.clases },
+    });
+  }
+
+  if (result.valid) {
+    await db.workerDocument.update({
+      where: { id: workerDocumentId },
+      data: { status: "APPROVED" },
+    });
+    revalidatePath("/dashboard/trabajadores/[id]", "page");
+  }
+
+  return result;
+}
+
 const VERIFICADOR_URL = process.env.VERIFICADOR_URL ?? "http://localhost:3001";
 
 // ─── Antecedentes ─────────────────────────────────────────────────────────────
