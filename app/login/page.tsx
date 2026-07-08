@@ -53,18 +53,6 @@ export default function LoginPage() {
       {/* Panel izquierdo - branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 aurora-intense bg-noise relative overflow-hidden" style={{ background: "var(--sidebar)" }}>
 
-        {/* Watermark: chevrons gigantes recortados por el borde */}
-        <svg
-          viewBox="0 0 48 48"
-          aria-hidden="true"
-          className="absolute pointer-events-none select-none"
-          style={{ width: "640px", height: "640px", right: "-180px", bottom: "-140px", transform: "rotate(-8deg)", opacity: 0.055 }}
-        >
-          <path d="M11 30 L17 24 L11 18" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="chev-seq-1" style={{ ["--chev-base" as string]: 0.4 }} />
-          <path d="M20 32 L27 24 L20 16" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="chev-seq-2" style={{ ["--chev-base" as string]: 0.6 }} />
-          <path d="M29 34 L38 24 L29 14" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="chev-seq-3" style={{ ["--chev-base" as string]: 0.85 }} />
-        </svg>
-
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
