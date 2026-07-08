@@ -108,13 +108,21 @@ export default function LoginPage() {
           {STATS.map((s) => (
             <div
               key={s.label}
-              className="relative overflow-hidden rounded-xl p-4 backdrop-blur-md shimmer"
+              className="relative overflow-hidden rounded-xl p-4 backdrop-blur-md"
               style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.15)" }}
             >
-              <p className="text-2xl font-black text-gradient" style={{ filter: "brightness(1.6)" }}>
+              <p
+                className="text-2xl font-black"
+                style={{
+                  background: "linear-gradient(135deg, #a78bfa, #818cf8 55%, #7dd3fc)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
                 <CountUp value={s.value} suffix={s.suffix} duration={1.8} />
               </p>
-              <p className="text-xs text-white/60 mt-1">{s.label}</p>
+              <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>{s.label}</p>
             </div>
           ))}
         </motion.div>
