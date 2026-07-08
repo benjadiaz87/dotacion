@@ -1,5 +1,7 @@
 "use server";
 
+import { assertCanWrite } from "@/lib/authz";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -24,6 +26,7 @@ export async function createProject(
   data: z.infer<typeof projectSchema>,
   weekPlans: WeekPlanInput[]
 ) {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -65,6 +68,7 @@ export async function createProject(
 }
 
 export async function updateProjectStatus(id: string, status: string) {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -74,6 +78,7 @@ export async function updateProjectStatus(id: string, status: string) {
 }
 
 export async function deleteProject(id: string) {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -86,8 +91,12 @@ export async function getProjects() {
   const session = await auth();
   if (!session?.user?.id) return [];
 
+  // Superadmin y Auditor ven todos los proyectos; Admin solo los propios
+  const role = (session.user as { role?: string }).role;
+  const seesAll = role === "SUPERADMIN" || role === "AUDITOR";
+
   return db.project.findMany({
-    where: { userId: session.user.id },
+    where: seesAll ? {} : { userId: session.user.id },
     include: {
       weekPlans: {
         include: { requirements: { include: { role: true } } },

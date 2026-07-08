@@ -1,30 +1,32 @@
 import { getProjects } from "@/lib/actions/projects";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import Link from "next/link";
+import { auth } from "@/lib/auth";
+import { getCompanyStats } from "@/lib/actions/workers";
 import { ProjectsFilteredGrid } from "@/components/projects-filtered-grid";
+import { ProyectosHero } from "@/components/proyectos-hero";
 
 export default async function ProyectosPage() {
-  const projects = await getProjects();
+  const [projects, companyStats, session] = await Promise.all([getProjects(), getCompanyStats(), auth()]);
+  const canWrite = (session?.user as { role?: string } | undefined)?.role !== "AUDITOR";
+
+  const coverage = new Map(
+    companyStats.projectsBreakdown.map((b) => [b.projectId, { requeridos: b.requeridos, cubiertos: b.cubiertos }])
+  );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Proyectos</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {projects.length} proyecto{projects.length !== 1 ? "s" : ""} en total
-          </p>
-        </div>
-        <Link href="/dashboard/proyectos/nuevo">
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nuevo Proyecto
-          </Button>
-        </Link>
+    <div className="min-h-screen bg-muted/30">
+      <ProyectosHero
+        canWrite={canWrite}
+        total={projects.length}
+        activos={projects.filter((p) => p.status === "ACTIVE").length}
+        dotacionRequerida={companyStats.dotacionRequerida}
+        dotacionCubierta={companyStats.dotacionCubierta}
+      />
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <ProjectsFilteredGrid
+          projects={projects}
+          coverage={Object.fromEntries(coverage)}
+        />
       </div>
-
-      <ProjectsFilteredGrid projects={projects} />
     </div>
   );
 }

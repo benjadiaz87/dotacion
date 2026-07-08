@@ -7,22 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { HardHat, Loader2, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { BrandMark } from "@/components/brand-mark";
+import { CountUp } from "@/components/motion-primitives";
+
+const STATS = [
+  { label: "Proyectos activos", value: 120, suffix: "+" },
+  { label: "Empleados gestionados", value: 8500, suffix: "+" },
+  { label: "Mineras usuarias", value: 15, suffix: "" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function doLogin(em: string, pw: string) {
     startTransition(async () => {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+      const res = await signIn("credentials", { email: em, password: pw, redirect: false });
       if (res?.error) {
         toast.error("Credenciales inválidas. Verifica tu email y contraseña.");
       } else {
@@ -32,18 +37,37 @@ export default function LoginPage() {
     });
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    doLogin(email, password);
+  }
+
+  function handleDemo() {
+    setEmail("admin@faenas.cl");
+    setPassword("admin123");
+    doLogin("admin@faenas.cl", "admin123");
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* Panel izquierdo - branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12" style={{ background: "var(--sidebar)" }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <HardHat className="w-6 h-6 text-white" />
-          </div>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 hero-aurora relative" style={{ background: "var(--sidebar)" }}>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex items-center gap-3 relative z-10"
+        >
+          <BrandMark size={40} className="drop-shadow-lg" />
           <span className="text-xl font-bold text-white">DotaciónFaenas</span>
-        </div>
+        </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="relative z-10"
+        >
           <blockquote className="text-2xl font-medium leading-relaxed text-white/90 mb-6">
             "La plataforma que transforma la gestión de dotación en faenas mineras y constructivas."
           </blockquote>
@@ -56,30 +80,34 @@ export default function LoginPage() {
               <p className="text-xs text-white/60">Gerente RRHH, Minera Norte S.A.</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Proyectos activos", value: "120+" },
-            { label: "Empleados gestionados", value: "8.500+" },
-            { label: "Mineras usuarias", value: "15" },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.07)" }}>
-              <p className="text-2xl font-bold text-white">{s.value}</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="grid grid-cols-3 gap-4 relative z-10">
+          {STATS.map((s) => (
+            <div key={s.label} className="rounded-xl p-4 backdrop-blur-sm" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-2xl font-bold text-white">
+                <CountUp value={s.value} suffix={s.suffix} duration={1.8} />
+              </p>
               <p className="text-xs text-white/60 mt-1">{s.label}</p>
             </div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* Panel derecho - formulario */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center p-8 bg-background bg-dotgrid">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="w-full max-w-sm">
           {/* Logo mobile */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <HardHat className="w-5 h-5 text-white" />
-            </div>
+            <BrandMark size={36} />
             <span className="text-lg font-bold">DotaciónFaenas</span>
           </div>
 
@@ -99,7 +127,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="admin@faenas.cl"
-                  className="pl-10"
+                  className="pl-10 h-11 transition-shadow focus-visible:shadow-md focus-visible:shadow-primary/10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -116,18 +144,26 @@ export default function LoginPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="pl-10"
+                  className="pl-10 pr-10 h-11 transition-shadow focus-visible:shadow-md focus-visible:shadow-primary/10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11" disabled={isPending}>
+            <Button type="submit" className="w-full h-11 font-semibold shadow-lg shadow-primary/20" disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -137,13 +173,24 @@ export default function LoginPage() {
                 "Ingresar a la plataforma"
               )}
             </Button>
+
+            {/* Acceso demo de un clic */}
+            <button
+              type="button"
+              onClick={handleDemo}
+              disabled={isPending}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg border border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Explorar con cuenta demo
+            </button>
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-8">
             ¿Olvidaste tu contraseña?{" "}
             <span className="text-primary cursor-pointer hover:underline">Contacta a soporte</span>
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

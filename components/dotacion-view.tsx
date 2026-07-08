@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,13 @@ import {
 import {
   AlertTriangle,
   ChevronRight,
+  Loader2,
   Minus,
   Plus,
   Search,
   ShieldAlert,
   ShieldCheck,
+  Trash2,
   TrendingDown,
   TrendingUp,
   Users,
@@ -27,8 +29,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { CriticalForecast, RoleDotacion, WeekDotacion } from "@/lib/actions/workers";
+import { removeAssignment } from "@/lib/actions/workers";
 import { computeRoleFillSplit, formatDate, formatWeekRange, type DotacionWorker } from "@/lib/project-utils";
 import { AssignWorkerDialog } from "@/components/assign-worker-dialog";
+import { toast } from "sonner";
 
 type Role = { id: string; name: string; color: string };
 type WeekPlan = { id: string; weekNumber: number };
@@ -131,6 +135,70 @@ function buildAggregateView(weeksData: WeekDotacion[]): AggregateView | null {
       : null,
     roles,
   };
+}
+
+function WorkerRow({ worker, weekPlanId }: { worker: DotacionWorker; weekPlanId: string | null }) {
+  const [isPending, startTransition] = useTransition();
+  const [confirm, setConfirm] = useState(false);
+
+  function handleRemove() {
+    if (!weekPlanId) return;
+    startTransition(async () => {
+      await removeAssignment(worker.id, weekPlanId);
+      toast.success(`${worker.fullName} removido de esta semana`);
+      setConfirm(false);
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-background border hover:border-primary/40 transition-colors group">
+      <Link href={`/dashboard/trabajadores/${worker.id}`} className="flex-1 min-w-0 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{worker.fullName}</p>
+          <p className="text-xs text-muted-foreground">{worker.rut}</p>
+        </div>
+        {worker.habilitado ? (
+          <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 flex-shrink-0">
+            <ShieldCheck className="w-3.5 h-3.5" /> Habilitado
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 text-xs font-medium text-amber-700 flex-shrink-0">
+            <ShieldAlert className="w-3.5 h-3.5" /> Pendiente
+          </span>
+        )}
+      </Link>
+
+      {weekPlanId && (
+        <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {confirm ? (
+            <>
+              <button
+                onClick={handleRemove}
+                disabled={isPending}
+                className="text-[11px] px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 font-medium transition-colors"
+              >
+                {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Confirmar"}
+              </button>
+              <button
+                onClick={() => setConfirm(false)}
+                className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setConfirm(true)}
+              className="p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Remover de esta semana"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DotacionView({ weeksData, projectProgress, criticalForecast, roles, weekPlans }: Props) {
@@ -485,25 +553,11 @@ export function DotacionView({ weeksData, projectProgress, criticalForecast, rol
                       />
                     </div>
                     {workersForList.map((w) => (
-                      <Link
+                      <WorkerRow
                         key={w.id}
-                        href={`/dashboard/trabajadores/${w.id}`}
-                        className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-background border hover:border-primary/40 transition-colors"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{w.fullName}</p>
-                          <p className="text-xs text-muted-foreground">{w.rut}</p>
-                        </div>
-                        {w.habilitado ? (
-                          <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 flex-shrink-0">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Habilitado
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs font-medium text-amber-700 flex-shrink-0">
-                            <ShieldAlert className="w-3.5 h-3.5" /> Pendiente
-                          </span>
-                        )}
-                      </Link>
+                        worker={w}
+                        weekPlanId={isAggregate ? null : (current as WeekDotacion).weekPlanId}
+                      />
                     ))}
                   </div>
                 )}

@@ -11,12 +11,21 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getOrCreateWorker, searchWorkers } from "@/lib/actions/workers";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, UserX } from "lucide-react";
 
-export function AddWorkerDialog() {
+type RoleOption = { id: string; name: string; color: string };
+
+export function AddWorkerDialog({ roles = [] }: { roles?: RoleOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -25,6 +34,7 @@ export function AddWorkerDialog() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [roleId, setRoleId] = useState("");
   const [alreadyExists, setAlreadyExists] = useState(false);
 
   function resetForm() {
@@ -32,6 +42,7 @@ export function AddWorkerDialog() {
     setFullName("");
     setPhone("");
     setEmail("");
+    setRoleId("");
     setAlreadyExists(false);
   }
 
@@ -63,6 +74,7 @@ export function AddWorkerDialog() {
           fullName,
           phone: phone || undefined,
           email: email || undefined,
+          roleId: roleId || undefined,
         });
         toast.success(`${fullName} agregado correctamente`);
         setOpen(false);
@@ -117,6 +129,32 @@ export function AddWorkerDialog() {
               <Input placeholder="correo@ejemplo.cl" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
+
+          {roles.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Cargo</Label>
+              <Select value={roleId} onValueChange={(v) => setRoleId(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecciona un cargo (define sus requisitos documentales)">
+                    {(value: string) => roles.find((r) => r.id === value)?.name ?? "Selecciona un cargo"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ background: r.color }} />
+                        {r.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                El cargo determina los requisitos documentales adicionales de su pipeline.
+              </p>
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground">
             Podrás asignarlo a un proyecto y subir su documentación después de crearlo.

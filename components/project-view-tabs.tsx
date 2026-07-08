@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { DotacionView } from "@/components/dotacion-view";
 import { GanttChart } from "@/components/gantt-chart";
 import { AssignWorkerDialog } from "@/components/assign-worker-dialog";
@@ -17,6 +18,7 @@ type WeekPlan = {
 };
 
 interface Props {
+  canWrite?: boolean;
   weeksData: WeekDotacion[];
   criticalForecast: CriticalForecast;
   projectProgress: number;
@@ -25,47 +27,63 @@ interface Props {
   roles: Role[];
 }
 
-export function ProjectViewTabs({ weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
+const TABS = [
+  { key: "dotacion" as const, label: "Dotación", icon: Users },
+  { key: "gantt" as const, label: "Carta Gantt", icon: LayoutGrid },
+];
+
+export function ProjectViewTabs({ canWrite = true, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
   const [view, setView] = useState<"dotacion" | "gantt">("dotacion");
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="inline-flex items-center rounded-lg border bg-muted/40 p-1">
-          <button
-            onClick={() => setView("dotacion")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              view === "dotacion" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            Dotación
-          </button>
-          <button
-            onClick={() => setView("gantt")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              view === "gantt" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            Carta Gantt
-          </button>
+        <div className="inline-flex items-center rounded-xl border bg-muted/40 p-1 shadow-sm">
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setView(key)}
+              className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                view === key ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {view === key && (
+                <motion.span
+                  layoutId="project-tab-pill"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/60"
+                />
+              )}
+              <Icon className="w-3.5 h-3.5 relative z-10" />
+              <span className="relative z-10">{label}</span>
+            </button>
+          ))}
         </div>
 
-        <AssignWorkerDialog roles={roles} weekPlans={weekPlans.map((w) => ({ id: w.id, weekNumber: w.weekNumber }))} />
+        {canWrite && <AssignWorkerDialog roles={roles} weekPlans={weekPlans.map((w) => ({ id: w.id, weekNumber: w.weekNumber }))} />}
       </div>
 
-      {view === "dotacion" ? (
-        <DotacionView
-          weeksData={weeksData}
-          projectProgress={projectProgress}
-          criticalForecast={criticalForecast}
-          roles={roles}
-          weekPlans={weekPlans.map((w) => ({ id: w.id, weekNumber: w.weekNumber }))}
-        />
-      ) : (
-        <GanttChart weekPlans={weekPlans} startDate={startDate} />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={view}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {view === "dotacion" ? (
+            <DotacionView
+              weeksData={weeksData}
+              projectProgress={projectProgress}
+              criticalForecast={criticalForecast}
+              roles={roles}
+              weekPlans={weekPlans.map((w) => ({ id: w.id, weekNumber: w.weekNumber }))}
+            />
+          ) : (
+            <GanttChart weekPlans={weekPlans} startDate={startDate} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

@@ -46,22 +46,30 @@ model Role {
   category String @default("OPERATIVO")
   color    String @default("#3b82f6")
 
-  requirements RoleRequirement[]
-  assignments  WorkerAssignment[]
+  requirements  RoleRequirement[]
+  assignments   WorkerAssignment[]
+  stageReqs     StageDocRequirement[]
+  workers       Worker[]
 
   @@map("roles")
 }
 
 model Worker {
-  id        String   @id @default(cuid())
-  rut       String   @unique
-  fullName  String
-  phone     String?
-  email     String?
-  createdAt DateTime @default(now())
+  id                String   @id @default(cuid())
+  rut               String   @unique
+  fullName          String
+  phone             String?
+  email             String?
+  createdAt         DateTime @default(now())
+  currentStageOrder Int      @default(1)
 
-  documents   WorkerDocument[]
-  assignments WorkerAssignment[]
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  documents     WorkerDocument[]
+  assignments   WorkerAssignment[]
+  exceptions    WorkerDocException[]
+  uploadTokens  WorkerUploadToken[]
 
   @@map("workers")
 }
@@ -71,9 +79,70 @@ model DocumentType {
   name     String  @unique
   required Boolean @default(true)
 
-  documents WorkerDocument[]
+  documents    WorkerDocument[]
+  stageReqs    StageDocRequirement[]
+  exceptions   WorkerDocException[]
 
   @@map("document_types")
+}
+
+model Stage {
+  id          String  @id @default(cuid())
+  order       Int     @unique
+  name        String  @unique
+  type        String  // "PROCESO" | "HITO"
+  description String?
+
+  requirements StageDocRequirement[]
+  exceptions   WorkerDocException[]
+
+  @@map("stages")
+}
+
+model StageDocRequirement {
+  id String @id @default(cuid())
+
+  stageId        String
+  stage          Stage        @relation(fields: [stageId], references: [id])
+
+  documentTypeId String
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id])
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  @@unique([stageId, documentTypeId, roleId])
+  @@map("stage_doc_requirements")
+}
+
+model WorkerUploadToken {
+  id        String   @id @default(cuid())
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@map("worker_upload_tokens")
+}
+
+model WorkerDocException {
+  id            String   @id @default(cuid())
+  justification String
+  createdAt     DateTime @default(now())
+  createdBy     String   @default("admin")
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  documentTypeId String
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id])
+
+  stageId String
+  stage   Stage  @relation(fields: [stageId], references: [id])
+
+  @@map("worker_doc_exceptions")
 }
 
 model WorkerDocument {

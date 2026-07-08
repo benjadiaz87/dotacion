@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 export const proxy = auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname === "/login";
+  const isUploadPage = req.nextUrl.pathname.startsWith("/upload");
+
+  if (isUploadPage) return NextResponse.next();
 
   if (!isLoggedIn && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", req.url));

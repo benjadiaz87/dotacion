@@ -23,6 +23,7 @@ import {
   statusConfig,
 } from "@/lib/project-utils";
 import { DotacionSparkline } from "@/components/dotacion-sparkline";
+import { Stagger, StaggerItem, GrowBar } from "@/components/motion-primitives";
 
 type WeekPlan = {
   weekNumber: number;
@@ -43,11 +44,12 @@ type ProjectCardData = {
 
 interface Props {
   projects: ProjectCardData[];
+  coverage?: Record<string, { requeridos: number; cubiertos: number }>;
 }
 
 const ALL = "__all__";
 
-export function ProjectsFilteredGrid({ projects }: Props) {
+export function ProjectsFilteredGrid({ projects, coverage = {} }: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(ALL);
   const [clientFilter, setClientFilter] = useState(ALL);
@@ -201,72 +203,112 @@ export function ProjectsFilteredGrid({ projects }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((project) => {
             const progress = getProjectProgress(project.startDate, project.weeks);
             const headcount = getTotalHeadcount(project.weekPlans);
             const sparkData = getSparklineData(project.weekPlans);
             const sc = statusConfig[project.status as keyof typeof statusConfig];
+            const cov = coverage[project.id];
+            const covPct = cov && cov.requeridos > 0 ? Math.round((cov.cubiertos / cov.requeridos) * 100) : null;
+            const covColor = covPct === null ? "" : covPct >= 90 ? "text-emerald-700" : covPct >= 70 ? "text-amber-700" : "text-red-700";
+            const covGrad = covPct === null ? "" : covPct >= 90
+              ? "linear-gradient(90deg, #10b981, #34d399)"
+              : covPct >= 70
+              ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+              : "linear-gradient(90deg, #ef4444, #f87171)";
+            const isActive = project.status === "ACTIVE";
 
             return (
-              <Link key={project.id} href={`/dashboard/proyectos/${project.id}`}>
-                <Card className="border shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer h-full">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">{project.name}</h3>
-                        {project.client && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{project.client}</p>
-                        )}
-                      </div>
-                      <Badge variant="outline" className={`text-xs shrink-0 ${sc.color}`}>
-                        {sc.label}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-4">
-                    {/* Curva de dotación */}
-                    <div className="rounded-lg bg-muted/40 px-2 pt-2 pb-1">
-                      <DotacionSparkline data={sparkData} height={52} />
-                      <div className="flex justify-between text-[10px] text-muted-foreground px-1 mt-0.5">
-                        <span>S1</span>
-                        <span className="font-medium text-foreground">
-                          {headcount.toLocaleString("es-CL")} personas totales
-                        </span>
-                        <span>S{project.weeks}</span>
+              <StaggerItem key={project.id} className="h-full">
+                <Link href={`/dashboard/proyectos/${project.id}`} className="block h-full">
+                  <div className="card-premium card-lift rounded-2xl cursor-pointer h-full group overflow-hidden">
+                    <div className="p-5 pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center flex-shrink-0 group-hover:from-primary/25 group-hover:to-primary/10 transition-colors">
+                            <FolderKanban className="w-4.5 h-4.5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{project.name}</h3>
+                            {project.client && (
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{project.client}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={`text-xs shrink-0 gap-1.5 ${sc.color}`}>
+                          {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live" />}
+                          {sc.label}
+                        </Badge>
                       </div>
                     </div>
 
-                    {project.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
-                    )}
+                    <div className="px-5 pb-5 space-y-4">
+                      {/* Curva de dotación */}
+                      <div className="rounded-xl bg-muted/40 px-2 pt-2 pb-1 border border-border/50">
+                        <DotacionSparkline data={sparkData} height={52} />
+                        <div className="flex justify-between text-[10px] text-muted-foreground px-1 mt-0.5">
+                          <span>S1</span>
+                          <span className="font-medium text-foreground">
+                            {headcount.toLocaleString("es-CL")} personas totales
+                          </span>
+                          <span>S{project.weeks}</span>
+                        </div>
+                      </div>
 
-                    <div className="space-y-2 text-xs text-muted-foreground">
-                      {project.location && (
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5" />
-                          {project.location}
+                      {/* Cobertura de dotación (semana en curso) */}
+                      {covPct !== null && (
+                        <div>
+                          <div className="flex items-center justify-between text-xs mb-1.5">
+                            <span className="text-muted-foreground">Cobertura dotación</span>
+                            <span className={`font-bold ${covColor}`}>
+                              {cov!.cubiertos}/{cov!.requeridos} · {covPct}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-muted overflow-hidden relative">
+                            <GrowBar
+                              pct={Math.min(covPct, 100)}
+                              className="h-full rounded-full relative overflow-hidden shimmer"
+                              style={{ background: covGrad }}
+                            />
+                          </div>
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5">
-                        <CalendarDays className="w-3.5 h-3.5" />
-                        {formatDate(project.startDate)} · {project.weeks} semanas
-                      </div>
-                    </div>
 
-                    <div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                        <span>Avance del proyecto</span>
-                        <span className="font-medium text-foreground">{progress}%</span>
+                      <div className="space-y-2 text-xs text-muted-foreground">
+                        {project.location && (
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {project.location}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <CalendarDays className="w-3.5 h-3.5" />
+                          {formatDate(project.startDate)} · {project.weeks} semanas
+                        </div>
                       </div>
-                      <Progress value={progress} className="h-1.5" />
+
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                          <span>Avance del proyecto</span>
+                          <span className="font-medium text-foreground">{progress}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden relative">
+                          <GrowBar
+                            pct={progress}
+                            delay={0.2}
+                            className="h-full rounded-full"
+                            style={{ background: "linear-gradient(90deg, oklch(0.46 0.22 264), oklch(0.55 0.22 290))" }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </Link>
+              </StaggerItem>
             );
           })}
-        </div>
+        </Stagger>
       )}
     </div>
   );

@@ -1,5 +1,7 @@
 "use server";
 
+import { assertCanWrite, assertCanUploadFor } from "@/lib/authz";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -13,9 +15,11 @@ const workerSchema = z.object({
   fullName: z.string().min(1),
   phone: z.string().optional(),
   email: z.string().optional(),
+  roleId: z.string().optional(),
 });
 
 export async function getOrCreateWorker(data: z.infer<typeof workerSchema>) {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -52,7 +56,7 @@ export type WorkerSearchResult = {
 
 export async function searchWorkersWithStatus(query: string): Promise<WorkerSearchResult[]> {
   if (!query || query.length < 2) return [];
-  const [workers, requiredTypes] = await Promise.all([
+  const [workers, maxStage] = await Promise.all([
     db.worker.findMany({
       where: {
         OR: [{ rut: { contains: query } }, { fullName: { contains: query } }],
@@ -60,15 +64,19 @@ export async function searchWorkersWithStatus(query: string): Promise<WorkerSear
       include: { documents: true },
       take: 15,
     }),
-    db.documentType.findMany({ where: { required: true } }),
+    db.stage.aggregate({ _max: { order: true } }),
   ]);
 
+  const maxOrder = maxStage._max.order ?? 4;
+
   return workers.map((w) => {
-    const approvedCount = requiredTypes.filter((t) =>
-      w.documents.some((d) => d.documentTypeId === t.id && d.status === "APPROVED")
-    ).length;
-    const semaphore = computeSemaphore(requiredTypes.length, approvedCount);
-    return { id: w.id, rut: w.rut, fullName: w.fullName, semaphore, asignable: semaphore === "green" };
+    const habilitado = w.currentStageOrder > maxOrder;
+    const semaphore: DocSemaphore = habilitado
+      ? "green"
+      : w.currentStageOrder > 1 || w.documents.some((d) => d.status === "APPROVED")
+      ? "yellow"
+      : "red";
+    return { id: w.id, rut: w.rut, fullName: w.fullName, semaphore, asignable: habilitado };
   });
 }
 
@@ -87,14 +95,12 @@ export async function getWorker(id: string) {
 }
 
 export async function isWorkerHabilitado(workerId: string): Promise<boolean> {
-  const requiredTypes = await db.documentType.findMany({ where: { required: true } });
-  if (requiredTypes.length === 0) return true;
-
-  const approvedDocs = await db.workerDocument.findMany({
-    where: { workerId, status: "APPROVED", documentTypeId: { in: requiredTypes.map((t) => t.id) } },
-  });
-
-  return requiredTypes.every((t) => approvedDocs.some((d) => d.documentTypeId === t.id));
+  const [worker, maxStage] = await Promise.all([
+    db.worker.findUnique({ where: { id: workerId }, select: { currentStageOrder: true } }),
+    db.stage.aggregate({ _max: { order: true } }),
+  ]);
+  if (!worker) return false;
+  return worker.currentStageOrder > (maxStage._max.order ?? 4);
 }
 
 export type WorkerListItem = {
@@ -107,27 +113,47 @@ export type WorkerListItem = {
   semaphore: DocSemaphore;
   asignable: boolean;
   projects: { id: string; name: string }[];
+  currentStageOrder: number;
+  stageName: string;
+  stagesTotal: number;
+  pendingReviewCount: number;
 };
 
 export async function getAllWorkers(): Promise<WorkerListItem[]> {
-  const [workers, requiredTypes] = await Promise.all([
+  const [workers, requiredTypes, stages] = await Promise.all([
     db.worker.findMany({
       include: {
+        role: true,
         documents: { include: { documentType: true } },
         assignments: { include: { role: true, weekPlan: { include: { project: true } } } },
       },
       orderBy: { fullName: "asc" },
     }),
     db.documentType.findMany({ where: { required: true } }),
+    db.stage.findMany({ orderBy: { order: "asc" } }),
   ]);
+
+  const stagesTotal = stages.length;
 
   return workers.map((w) => {
     const approvedDocsCount = requiredTypes.filter((t) =>
       w.documents.some((d) => d.documentTypeId === t.id && d.status === "APPROVED")
     ).length;
-    const semaphore = computeSemaphore(requiredTypes.length, approvedDocsCount);
 
-    // Cargo más frecuente entre sus asignaciones
+    // Semáforo basado en avance de pipeline (no en conteo de documentos)
+    const habilitado = w.currentStageOrder > stagesTotal;
+    const semaphore: DocSemaphore = habilitado
+      ? "green"
+      : w.currentStageOrder > 1 || approvedDocsCount > 0
+      ? "yellow"
+      : "red";
+
+    const pendingReviewCount = w.documents.filter((d) => d.status === "PENDING").length;
+    const stageName = habilitado
+      ? "Habilitado"
+      : stages.find((s) => s.order === w.currentStageOrder)?.name ?? "—";
+
+    // Cargo propio del trabajador; fallback al más frecuente entre asignaciones
     const roleFreq = new Map<string, { count: number; role: { id: string; name: string; color: string } }>();
     for (const a of w.assignments) {
       const entry = roleFreq.get(a.roleId);
@@ -135,7 +161,9 @@ export async function getAllWorkers(): Promise<WorkerListItem[]> {
       else roleFreq.set(a.roleId, { count: 1, role: a.role });
     }
     const primaryRole =
-      Array.from(roleFreq.values()).sort((a, b) => b.count - a.count)[0]?.role ?? null;
+      w.role ??
+      Array.from(roleFreq.values()).sort((a, b) => b.count - a.count)[0]?.role ??
+      null;
 
     const projectsMap = new Map<string, string>();
     for (const a of w.assignments) {
@@ -152,6 +180,10 @@ export async function getAllWorkers(): Promise<WorkerListItem[]> {
       semaphore,
       asignable: semaphore === "green",
       projects: Array.from(projectsMap.entries()).map(([id, name]) => ({ id, name })),
+      currentStageOrder: w.currentStageOrder,
+      stageName,
+      stagesTotal,
+      pendingReviewCount,
     };
   });
 }
@@ -161,6 +193,7 @@ export async function assignWorkerToWeeks(
   weekPlanIds: string[],
   roleId: string
 ) {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -175,7 +208,19 @@ export async function assignWorkerToWeeks(
   revalidatePath("/dashboard/proyectos");
 }
 
+export async function deleteWorker(workerId: string) {
+  await assertCanWrite();
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("No autorizado");
+
+  await db.worker.delete({ where: { id: workerId } });
+
+  revalidatePath("/dashboard/empleados");
+  revalidatePath("/dashboard/proyectos");
+}
+
 export async function removeAssignment(workerId: string, weekPlanId: string) {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -187,8 +232,8 @@ export async function removeAssignment(workerId: string, weekPlanId: string) {
 }
 
 export async function uploadWorkerDocument(workerId: string, documentTypeId: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("No autorizado");
+  // Permite admins con sesión y trabajadores con enlace vigente; bloquea Auditor
+  await assertCanUploadFor(workerId);
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) throw new Error("Archivo requerido");
@@ -205,7 +250,7 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  await db.workerDocument.upsert({
+  const doc = await db.workerDocument.upsert({
     where: { workerId_documentTypeId: { workerId, documentTypeId } },
     update: {
       fileUrl: `/uploads/${fileName}`,
@@ -226,9 +271,11 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
 
   revalidatePath("/dashboard/trabajadores");
   revalidatePath("/dashboard/empleados");
+  return { documentId: doc.id };
 }
 
 export async function updateDocumentStatus(documentId: string, status: "APPROVED" | "REJECTED") {
+  await assertCanWrite();
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
@@ -254,6 +301,7 @@ export type RoleDotacion = {
 
 export type WeekDotacion = {
   weekNumber: number;
+  weekPlanId: string;
   startDate: Date;
   endDate: Date;
   totalWorkers: number;
@@ -354,6 +402,7 @@ export async function getProjectDotacionByWeek(projectId: string): Promise<WeekD
 
     return {
       weekNumber: wp.weekNumber,
+      weekPlanId: wp.id,
       startDate: wp.startDate,
       endDate: wp.endDate,
       totalWorkers,
@@ -414,9 +463,14 @@ export async function getProjectCriticalForecast(projectId: string): Promise<Cri
 
 export type CompanyStats = {
   vacantesTotal: number;
+  dotacionRequerida: number;
+  dotacionCubierta: number;
   poolDisponible: number;
   tiempoPromedioPrimeraAsignacionDias: number | null;
-  projectsBreakdown: { projectId: string; projectName: string; vacantes: number }[];
+  projectsBreakdown: {
+    projectId: string; projectName: string; vacantes: number;
+    requeridos: number; cubiertos: number;
+  }[];
 };
 
 export async function getCompanyStats(): Promise<CompanyStats> {
@@ -425,8 +479,13 @@ export async function getCompanyStats(): Promise<CompanyStats> {
     select: { id: true, name: true, createdAt: true },
   });
 
-  const projectsBreakdown: { projectId: string; projectName: string; vacantes: number }[] = [];
+  const projectsBreakdown: {
+    projectId: string; projectName: string; vacantes: number;
+    requeridos: number; cubiertos: number;
+  }[] = [];
   let vacantesTotal = 0;
+  let dotacionRequerida = 0;
+  let dotacionCubierta = 0;
 
   for (const project of activeProjects) {
     const weeksData = await getProjectDotacionByWeek(project.id);
@@ -435,8 +494,12 @@ export async function getCompanyStats(): Promise<CompanyStats> {
       weeksData.find((w) => now >= w.startDate.getTime() && now <= w.endDate.getTime()) ??
       weeksData[weeksData.length - 1];
     const vacantes = currentWeek?.vacantesTotal ?? 0;
+    const requeridos = currentWeek?.cargosTotales ?? 0;
+    const cubiertos = currentWeek?.cargosCubiertos ?? 0;
     vacantesTotal += vacantes;
-    projectsBreakdown.push({ projectId: project.id, projectName: project.name, vacantes });
+    dotacionRequerida += requeridos;
+    dotacionCubierta += cubiertos;
+    projectsBreakdown.push({ projectId: project.id, projectName: project.name, vacantes, requeridos, cubiertos });
   }
 
   // Pool disponible: trabajadores habilitados sin ninguna asignación vigente
@@ -467,8 +530,75 @@ export async function getCompanyStats(): Promise<CompanyStats> {
 
   return {
     vacantesTotal,
+    dotacionRequerida,
+    dotacionCubierta,
     poolDisponible,
     tiempoPromedioPrimeraAsignacionDias,
     projectsBreakdown: projectsBreakdown.sort((a, b) => b.vacantes - a.vacantes),
+  };
+}
+
+// ── Pipeline funnel stats (para el dashboard) ─────────────────────────────────
+
+export type PipelineStats = {
+  total: number;
+  habilitados: number;
+  byStage: { order: number; name: string; type: string; count: number }[];
+  pendingReview: { docsCount: number; workersCount: number };
+};
+
+export async function getPipelineStats(): Promise<PipelineStats> {
+  const [stages, workers, pendingDocs] = await Promise.all([
+    db.stage.findMany({ orderBy: { order: "asc" } }),
+    db.worker.findMany({ select: { currentStageOrder: true } }),
+    db.workerDocument.findMany({ where: { status: "PENDING" }, select: { workerId: true } }),
+  ]);
+
+  const maxOrder = stages[stages.length - 1]?.order ?? 4;
+  const countMap = new Map<number, number>();
+  for (const w of workers) {
+    countMap.set(w.currentStageOrder, (countMap.get(w.currentStageOrder) ?? 0) + 1);
+  }
+
+  const habilitados = workers.filter((w) => w.currentStageOrder > maxOrder).length;
+
+  return {
+    total: workers.length,
+    habilitados,
+    byStage: stages.map((s) => ({ order: s.order, name: s.name, type: s.type, count: countMap.get(s.order) ?? 0 })),
+    pendingReview: {
+      docsCount: pendingDocs.length,
+      workersCount: new Set(pendingDocs.map((d) => d.workerId)).size,
+    },
+  };
+}
+
+// ── Búsqueda global (⌘K) ──────────────────────────────────────────────────────
+
+export type GlobalSearchData = {
+  workers: { id: string; fullName: string; rut: string; stageName: string; habilitado: boolean }[];
+  projects: { id: string; name: string; client: string | null; status: string }[];
+};
+
+export async function getGlobalSearchData(): Promise<GlobalSearchData> {
+  const [workers, projects, stages] = await Promise.all([
+    db.worker.findMany({ select: { id: true, fullName: true, rut: true, currentStageOrder: true }, orderBy: { fullName: "asc" } }),
+    db.project.findMany({ select: { id: true, name: true, client: true, status: true }, orderBy: { name: "asc" } }),
+    db.stage.findMany({ orderBy: { order: "asc" } }),
+  ]);
+
+  const maxOrder = stages[stages.length - 1]?.order ?? 4;
+
+  return {
+    workers: workers.map((w) => ({
+      id: w.id,
+      fullName: w.fullName,
+      rut: w.rut,
+      stageName: w.currentStageOrder > maxOrder
+        ? "Habilitado"
+        : stages.find((s) => s.order === w.currentStageOrder)?.name ?? "—",
+      habilitado: w.currentStageOrder > maxOrder,
+    })),
+    projects,
   };
 }

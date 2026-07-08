@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,23 +18,148 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Users, X } from "lucide-react";
+import { Loader2, Search, Trash2, Users, X } from "lucide-react";
 import Link from "next/link";
 import type { WorkerListItem } from "@/lib/actions/workers";
+import { deleteWorker } from "@/lib/actions/workers";
+import { toast } from "sonner";
 
 const semaphoreConfig = {
-  green: { dot: "bg-emerald-500", label: "Completa", text: "text-emerald-700" },
-  yellow: { dot: "bg-amber-500", label: "Parcial", text: "text-amber-700" },
-  red: { dot: "bg-red-500", label: "Sin documentos", text: "text-red-700" },
+  green: { dot: "bg-emerald-500", label: "Habilitado", text: "text-emerald-700", bar: "bg-emerald-500" },
+  yellow: { dot: "bg-amber-500", label: "En proceso", text: "text-amber-700", bar: "bg-amber-500" },
+  red: { dot: "bg-red-500", label: "Sin iniciar", text: "text-red-700", bar: "bg-red-400" },
 };
 
 const ALL = "__all__";
 
-interface Props {
-  workers: WorkerListItem[];
+function DeleteableWorkerRow({ worker, canWrite = true }: { worker: WorkerListItem; canWrite?: boolean }) {
+  const [isPending, startTransition] = useTransition();
+  const [confirm, setConfirm] = useState(false);
+  const sem = semaphoreConfig[worker.semaphore];
+
+  function handleDelete() {
+    startTransition(async () => {
+      await deleteWorker(worker.id);
+      toast.success(`${worker.fullName} eliminado`);
+    });
+  }
+
+  return (
+    <TableRow className={`group ${worker.asignable ? "bg-emerald-50/50 hover:bg-emerald-50" : "bg-red-50/40 hover:bg-red-50/70"}`}>
+      <TableCell>
+        <Link href={`/dashboard/trabajadores/${worker.id}`} className="font-medium hover:underline">
+          {worker.fullName}
+        </Link>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{worker.rut}</TableCell>
+      <TableCell>
+        {worker.primaryRole ? (
+          <span className="flex items-center gap-1.5 text-sm">
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: worker.primaryRole.color }} />
+            {worker.primaryRole.name}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground italic">Sin cargo asignado</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <div className="min-w-[150px]">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className={`text-xs font-medium ${sem.text} truncate`}>
+              {worker.semaphore === "green" ? "Habilitado" : worker.stageName}
+            </span>
+            <span className="flex items-center gap-1.5 flex-shrink-0">
+              {worker.pendingReviewCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5"
+                  title={`${worker.pendingReviewCount} documento(s) por revisar`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  {worker.pendingReviewCount}
+                </span>
+              )}
+              <span className="text-[10px] text-muted-foreground font-semibold">
+                {worker.semaphore === "green"
+                  ? "✓"
+                  : `${Math.min(worker.currentStageOrder, worker.stagesTotal)}/${worker.stagesTotal}`}
+              </span>
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${sem.bar}`}
+              style={{
+                width: worker.semaphore === "green"
+                  ? "100%"
+                  : `${Math.round(((worker.currentStageOrder - 1) / worker.stagesTotal) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        {worker.projects.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {worker.projects.map((p) => (
+              <Link key={p.id} href={`/dashboard/proyectos/${p.id}`}>
+                <Badge variant="outline" className="text-xs hover:bg-muted cursor-pointer">
+                  {p.name}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground italic">Sin asignar</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {worker.asignable ? (
+          <Badge variant="outline" className="text-xs text-emerald-700 bg-emerald-50 border-emerald-200">
+            Asignable
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs text-red-700 bg-red-50 border-red-200">
+            No asignable
+          </Badge>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {!canWrite ? null : confirm ? (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={handleDelete}
+              disabled={isPending}
+              className="text-[11px] px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 font-medium transition-colors"
+            >
+              {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Eliminar"}
+            </button>
+            <button
+              onClick={() => setConfirm(false)}
+              className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+            >
+              No
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirm(true)}
+            className="p-1.5 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+            title="Eliminar trabajador"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </TableCell>
+    </TableRow>
+  );
 }
 
-export function EmpleadosTable({ workers }: Props) {
+interface Props {
+  workers: WorkerListItem[];
+  canWrite?: boolean;
+}
+
+export function EmpleadosTable({ workers, canWrite = true }: Props) {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState(ALL);
   const [semaphoreFilter, setSemaphoreFilter] = useState(ALL);
@@ -258,73 +383,16 @@ export function EmpleadosTable({ workers }: Props) {
                 <TableHead>Nombre</TableHead>
                 <TableHead>RUT</TableHead>
                 <TableHead>Cargo</TableHead>
-                <TableHead>Documentación</TableHead>
+                <TableHead>Pipeline</TableHead>
                 <TableHead>Proyectos asignados</TableHead>
                 <TableHead className="text-right">Estado</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((w) => {
-                const sem = semaphoreConfig[w.semaphore];
-                return (
-                  <TableRow
-                    key={w.id}
-                    className={w.asignable ? "bg-emerald-50/50 hover:bg-emerald-50" : "bg-red-50/40 hover:bg-red-50/70"}
-                  >
-                    <TableCell>
-                      <Link href={`/dashboard/trabajadores/${w.id}`} className="font-medium hover:underline">
-                        {w.fullName}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{w.rut}</TableCell>
-                    <TableCell>
-                      {w.primaryRole ? (
-                        <span className="flex items-center gap-1.5 text-sm">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: w.primaryRole.color }} />
-                          {w.primaryRole.name}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">Sin cargo asignado</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${sem.dot}`} />
-                        <span className={`text-xs font-medium ${sem.text}`}>{sem.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({w.approvedDocsCount}/{w.requiredDocsCount})
-                        </span>
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {w.projects.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {w.projects.map((p) => (
-                            <Link key={p.id} href={`/dashboard/proyectos/${p.id}`}>
-                              <Badge variant="outline" className="text-xs hover:bg-muted cursor-pointer">
-                                {p.name}
-                              </Badge>
-                            </Link>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">Sin asignar</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {w.asignable ? (
-                        <Badge variant="outline" className="text-xs text-emerald-700 bg-emerald-50 border-emerald-200">
-                          Asignable
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs text-red-700 bg-red-50 border-red-200">
-                          No asignable
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filtered.map((w) => (
+                <DeleteableWorkerRow canWrite={canWrite} key={w.id} worker={w} />
+              ))}
             </TableBody>
           </Table>
         </div>

@@ -5,15 +5,19 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import React from "react";
 import {
+  BadgeCheck,
   BarChart3,
   FolderKanban,
-  HardHat,
+  KeyRound,
   LayoutDashboard,
   LogOut,
+  Search as SearchIcon,
   Settings,
   Users,
 } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,19 +27,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const navItems: { href: string; label: string; icon: React.ElementType; disabled?: boolean; badge?: string }[] = [
+const navItems: { href: string; label: string; icon: React.ElementType; disabled?: boolean; badge?: string; superadminOnly?: boolean }[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/proyectos", label: "Proyectos", icon: FolderKanban },
   { href: "/dashboard/empleados", label: "Empleados", icon: Users },
   { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/dashboard/cargos", label: "Cargos", icon: BadgeCheck, superadminOnly: true },
+  { href: "/dashboard/acceso", label: "Acceso", icon: KeyRound, superadminOnly: true },
 ];
 
 interface SidebarProps {
-  user: { name?: string | null; email?: string | null };
+  user: { name?: string | null; email?: string | null; role?: string | null };
 }
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const visibleItems = navItems.filter(
+    (item) => !item.superadminOnly || user.role === "SUPERADMIN"
+  );
 
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -45,9 +54,7 @@ export function Sidebar({ user }: SidebarProps) {
     <aside className="w-64 flex-shrink-0 flex flex-col h-full" style={{ background: "var(--sidebar)", borderRight: "1px solid var(--sidebar-border)" }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-          <HardHat className="w-5 h-5 text-white" />
-        </div>
+        <BrandMark size={36} className="flex-shrink-0 drop-shadow-lg" />
         <div>
           <p className="text-sm font-bold leading-none" style={{ color: "var(--sidebar-foreground)" }}>
             DotaciónFaenas
@@ -58,12 +65,26 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
 
+      {/* Búsqueda global */}
+      <div className="px-3 pt-4">
+        <button
+          onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+          aria-label="Abrir búsqueda global"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm transition-colors hover:bg-white/5"
+          style={{ borderColor: "var(--sidebar-border)", color: "rgba(255,255,255,0.45)" }}
+        >
+          <SearchIcon className="w-3.5 h-3.5" />
+          <span className="flex-1 text-left text-xs">Buscar…</span>
+          <kbd className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>⌘K</kbd>
+        </button>
+      </div>
+
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         <p className="text-xs font-semibold px-3 mb-2" style={{ color: "rgba(255,255,255,0.35)", letterSpacing: "0.08em" }}>
           MENÚ PRINCIPAL
         </p>
-        {navItems.map(({ href, label, icon: Icon, disabled, badge }) => {
+        {visibleItems.map(({ href, label, icon: Icon, disabled, badge }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
@@ -71,27 +92,33 @@ export function Sidebar({ user }: SidebarProps) {
               href={disabled ? "#" : href}
               onClick={disabled ? (e) => e.preventDefault() : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
-                active
-                  ? "text-white"
-                  : "hover:text-white",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 group relative",
+                active ? "text-white" : "hover:text-white hover:bg-white/5",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
-              style={
-                active
-                  ? { background: "var(--sidebar-accent)", color: "white" }
-                  : { color: "var(--sidebar-foreground)" }
-              }
+              style={active ? { color: "white" } : { color: "var(--sidebar-foreground)" }}
             >
-              <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-primary" : "opacity-70")} />
-              <span className="flex-1">{label}</span>
+              {active && (
+                <motion.span
+                  layoutId="sidebar-active-pill"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  className="absolute inset-0 rounded-lg"
+                  style={{ background: "var(--sidebar-accent)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                />
+              )}
+              <Icon className={cn("w-4 h-4 flex-shrink-0 relative z-10", active ? "text-primary" : "opacity-70 group-hover:opacity-100 transition-opacity")} />
+              <span className="flex-1 relative z-10">{label}</span>
               {badge && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded relative z-10" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
                   {badge}
                 </span>
               )}
               {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-primary" />
+                <motion.span
+                  layoutId="sidebar-active-bar"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-primary z-10"
+                />
               )}
             </Link>
           );
