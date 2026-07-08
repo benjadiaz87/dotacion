@@ -5,7 +5,6 @@ import type { WorkerPipelineData, StageWithDocs } from "@/lib/actions/pipeline";
 import { advanceWorkerStage, updateDocumentStatus } from "@/lib/actions/pipeline";
 import { DocumentUploadForm } from "@/components/document-upload-form";
 import { DocumentVerifyPanel } from "@/components/document-verify-panel";
-import { DocumentAntecedentesPanel } from "@/components/document-antecedentes-panel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -263,13 +262,6 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (
               <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} isLicencia={isLicenciaType(doc.documentType.name)} />
-            ) : isAntecedentesType(doc.documentType.name) ? (
-              <DocumentAntecedentesPanel
-                documentId={doc.uploaded.id}
-                fileUrl={doc.uploaded.fileUrl}
-                fileName={doc.uploaded.fileName}
-                status={doc.uploaded.status}
-              />
             ) : (
               <DocumentVerifyPanel
                 documentId={doc.uploaded.id}
@@ -278,7 +270,11 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
                 documentNumber={doc.uploaded.documentNumber}
                 workerRut={worker.rut}
                 workerName={worker.fullName}
-                isCarnet={isCarnetType(doc.documentType.name)}
+                docKind={
+                  isCarnetType(doc.documentType.name) ? "carnet" :
+                  isAntecedentesType(doc.documentType.name) ? "antecedentes" :
+                  isLicenciaType(doc.documentType.name) ? "licencia" : "otro"
+                }
                 status={doc.uploaded.status}
               />
             )

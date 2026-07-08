@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { updateDocumentStatus } from "@/lib/actions/workers";
 import {
-  extractCarnetFromImage, verifyCarnetInRC, type VerificationResult,
+  extractCarnetFromImage, verifyCarnetInRC,
+  extractAntecedentesFromPdf, verifyAntecedentesInRC,
+  validateLicenciaDoc,
 } from "@/lib/actions/verificar-documento";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -23,6 +25,18 @@ import {
 
 const RC_URL = "https://www.registrocivil.cl/principal/servicios-en-linea/consulta-vigencia-documento-1";
 
+export type DocKind = "carnet" | "antecedentes" | "licencia" | "otro";
+
+// Resultado normalizado — idéntico para las tres verificaciones automáticas
+type AutoResult = { valid: boolean; status: string; message: string };
+
+const KIND_CFG: Record<DocKind, { idLabel: string; verifyingText: string; manualRC: boolean }> = {
+  carnet:       { idLabel: "N° de serie", verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
+  antecedentes: { idLabel: "Folio",       verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
+  licencia:     { idLabel: "Clase",       verifyingText: "Verificando con IA + validación de vigencia…", manualRC: false },
+  otro:         { idLabel: "Identificador", verifyingText: "", manualRC: false },
+};
+
 interface Props {
   documentId: string;
   fileUrl: string;
@@ -30,7 +44,7 @@ interface Props {
   documentNumber: string | null;
   workerRut: string;
   workerName: string;
-  isCarnet?: boolean;
+  docKind?: DocKind;
   status: string;
 }
 
@@ -62,32 +76,50 @@ export function DocumentVerifyPanel({
   documentNumber,
   workerRut,
   workerName,
-  isCarnet = false,
+  docKind = "otro",
   status,
 }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [autoVerifying, setAutoVerifying] = useState(false);
-  const [autoResult, setAutoResult] = useState<VerificationResult | null>(null);
+  const [autoResult, setAutoResult] = useState<AutoResult | null>(null);
 
+  const cfg = KIND_CFG[docKind];
+  const hasAutoVerify = docKind !== "otro";
+
+  // ── Verificación automática — mismo flujo y resultado para los 3 tipos ──
   async function handleAutoVerify() {
     setAutoVerifying(true);
     setAutoResult(null);
     try {
-      // Extrae RUT y N° de serie del documento y verifica contra RC + ficha
-      const data = await extractCarnetFromImage(documentId);
-      if (!data.rut || !data.documentNumber) {
-        setAutoResult({ valid: false, status: "ERROR", message: "No se pudo leer RUT o N° de serie del documento" });
-        return;
+      let result: AutoResult;
+
+      if (docKind === "carnet") {
+        const data = await extractCarnetFromImage(documentId);
+        if (!data.rut || !data.documentNumber) {
+          result = { valid: false, status: "NO_LEGIBLE", message: "No se pudo leer RUT o N° de serie del documento" };
+        } else {
+          result = await verifyCarnetInRC(documentId, data.rut, data.documentNumber);
+        }
+      } else if (docKind === "antecedentes") {
+        const data = await extractAntecedentesFromPdf(documentId);
+        if (!data.folio || !data.codigoVerificacion) {
+          result = { valid: false, status: "NO_LEGIBLE", message: "No se pudo leer folio o código de verificación del certificado" };
+        } else {
+          result = await verifyAntecedentesInRC(documentId, data.folio, data.codigoVerificacion, data.rut);
+        }
+      } else {
+        result = await validateLicenciaDoc(documentId);
       }
-      const result = await verifyCarnetInRC(documentId, data.rut, data.documentNumber);
+
       setAutoResult(result);
       if (result.valid) {
         toast.success("Documento verificado y aprobado automáticamente");
         setTimeout(() => router.refresh(), 2500);
       } else {
         toast.error(result.message);
+        router.refresh(); // refresca la nota persistente en la fila
       }
     } catch (e) {
       setAutoResult({ valid: false, status: "ERROR", message: e instanceof Error ? e.message : String(e) });
@@ -103,8 +135,6 @@ export function DocumentVerifyPanel({
       setExpanded(false);
     });
   }
-
-  const canVerify = !!documentNumber;
 
   return (
     <div className="space-y-2">
@@ -150,8 +180,8 @@ export function DocumentVerifyPanel({
       {expanded && (
         <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
 
-          {/* Verificación automática (carnet) */}
-          {isCarnet && (
+          {/* Verificación automática — idéntica para carnet, antecedentes y licencia */}
+          {hasAutoVerify && (
             <div className="space-y-2">
               <button
                 type="button"
@@ -160,7 +190,7 @@ export function DocumentVerifyPanel({
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold shadow-md shadow-violet-500/20 transition-all disabled:opacity-60"
               >
                 {autoVerifying
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando con IA + Registro Civil…</>
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> {cfg.verifyingText}</>
                   : <><Sparkles className="w-4 h-4" /> Verificación automática</>}
               </button>
 
@@ -217,18 +247,18 @@ export function DocumentVerifyPanel({
               )}
             </div>
 
-            {/* Datos para verificar en RC */}
+            {/* Datos del trabajador y del documento */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Datos para verificar en Registro Civil
+                {cfg.manualRC ? "Datos para verificar en Registro Civil" : "Datos del documento"}
               </p>
 
               <div className="space-y-2">
                 {[
                   { label: "Trabajador", value: workerName },
                   { label: "RUT", value: workerRut },
-                  ...(documentNumber ? [{ label: "N° de serie", value: documentNumber }] : []),
-                ].map(({ label, value }) => (
+                  ...(documentNumber ? [{ label: cfg.idLabel, value: documentNumber }] : []),
+                ].filter((f) => f.value).map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between gap-2 p-3 rounded-lg bg-background border">
                     <div>
                       <p className="text-[10px] text-muted-foreground">{label}</p>
@@ -239,25 +269,22 @@ export function DocumentVerifyPanel({
                 ))}
               </div>
 
-              {!canVerify && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
-                  Sube el documento con el número de serie para habilitar la verificación directa.
-                </p>
+              {cfg.manualRC && (
+                <>
+                  <a
+                    href={RC_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Abrir Registro Civil
+                  </a>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Copia los datos, verifícalos en el sitio del RC y vuelve a aprobar o rechazar.
+                  </p>
+                </>
               )}
-
-              <a
-                href={RC_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Abrir Registro Civil
-              </a>
-
-              <p className="text-[11px] text-muted-foreground text-center">
-                Copia el RUT y N° de serie, pégalos en el sitio del RC y vuelve a aprobar o rechazar.
-              </p>
             </div>
           </div>
 
