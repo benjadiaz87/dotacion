@@ -240,7 +240,7 @@ function DocRow({ doc, pipeline, stage, isCurrentStage, isFutureStage, onApprove
           {isCurrentStage ? (
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (
-              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} />
+              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} />
             ) : isAntecedentesType(doc.documentType.name) ? (
               <DocumentAntecedentesPanel
                 documentId={doc.uploaded.id}

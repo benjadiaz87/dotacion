@@ -4,7 +4,10 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { uploadWorkerDocument } from "@/lib/actions/workers";
-import { extractCarnetFromImage, verifyCarnetInRC, type CarnetExtracted, type VerificationResult } from "@/lib/actions/verificar-documento";
+import {
+  extractCarnetFromImage, verifyCarnetInRC, type CarnetExtracted, type VerificationResult,
+  extractAntecedentesFromPdf, verifyAntecedentesInRC, type AntecedentesExtracted, type AntecedentesVerificationResult,
+} from "@/lib/actions/verificar-documento";
 import { toast } from "sonner";
 import {
   Check, Upload, ScanLine, ShieldCheck, ShieldAlert,
@@ -15,6 +18,7 @@ interface Props {
   workerId: string;
   documentTypeId: string;
   isCarnet?: boolean;
+  isAntecedentes?: boolean;
 }
 
 type Phase =
@@ -38,10 +42,16 @@ const PHASE_STEP: Record<Phase, number> = {
   idle: -1, uploading: 0, extracting: 1, extracted: 1, verifying: 2, done_ok: 3, done_fail: 3, error: -1,
 };
 
-const PHASE_MESSAGE: Partial<Record<Phase, { title: string; subtitle: string }>> = {
-  uploading:  { title: "Subiendo imagen…",         subtitle: "Guardando el archivo en el servidor" },
-  extracting: { title: "IA leyendo el carnet…",    subtitle: "Claude Vision extrae RUT, nombre y número de serie" },
-  verifying:  { title: "Consultando Registro Civil…", subtitle: "Resolviendo CAPTCHA y verificando vigencia en el SRCeI" },
+const PHASE_MESSAGE_CARNET: Partial<Record<Phase, { title: string; subtitle: string }>> = {
+  uploading:  { title: "Subiendo imagen…",              subtitle: "Guardando el archivo en el servidor" },
+  extracting: { title: "IA leyendo el carnet…",         subtitle: "Claude Vision extrae RUT, nombre y número de serie" },
+  verifying:  { title: "Consultando Registro Civil…",   subtitle: "Resolviendo CAPTCHA y verificando vigencia en el SRCeI" },
+};
+
+const PHASE_MESSAGE_ANTECEDENTES: Partial<Record<Phase, { title: string; subtitle: string }>> = {
+  uploading:  { title: "Subiendo certificado…",         subtitle: "Guardando el PDF en el servidor" },
+  extracting: { title: "IA leyendo el certificado…",    subtitle: "Claude extrae folio y código de verificación" },
+  verifying:  { title: "Consultando Registro Civil…",   subtitle: "Verificando autenticidad del certificado en el SRCeI" },
 };
 
 function StepIndicator({ phase }: { phase: Phase }) {
@@ -160,22 +170,27 @@ const PROCESS_STEPS = (rut: string, serie: string, valid: boolean) => [
   },
 ];
 
-export function DocumentUploadForm({ workerId, documentTypeId, isCarnet }: Props) {
+export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [extracted, setExtracted] = useState<CarnetExtracted | null>(null);
+  const [extractedAnt, setExtractedAnt] = useState<AntecedentesExtracted | null>(null);
   const [verification, setVerification] = useState<VerificationResult | null>(null);
+  const [verificationAnt, setVerificationAnt] = useState<AntecedentesVerificationResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  const phaseMsg = isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
   const isProcessing = ["uploading", "extracting", "verifying"].includes(phase);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files?.[0] ?? null);
     setPhase("idle");
     setExtracted(null);
+    setExtractedAnt(null);
     setVerification(null);
+    setVerificationAnt(null);
   }
 
   function handleSubmit(formData: FormData) {
@@ -184,6 +199,37 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet }: Props
         setPhase("uploading");
         const { documentId } = await uploadWorkerDocument(workerId, documentTypeId, formData);
 
+        // ── Certificado de antecedentes ──────────────────────────────────────
+        if (isAntecedentes && file && /\.pdf$/i.test(file.name)) {
+          setPhase("extracting");
+          const data = await extractAntecedentesFromPdf(documentId);
+          setExtractedAnt(data);
+          setPhase("extracted");
+
+          if (!data.folio || !data.codigoVerificacion) {
+            toast.error("No se encontraron folio o código de verificación en el PDF");
+            setPhase("done_fail");
+            return;
+          }
+
+          setPhase("verifying");
+          const result = await verifyAntecedentesInRC(documentId, data.folio, data.codigoVerificacion);
+          setVerificationAnt(result);
+          setPhase(result.valid ? "done_ok" : "done_fail");
+
+          if (result.valid) {
+            toast.success("Certificado verificado y aprobado automáticamente");
+          } else {
+            toast.error(`Registro Civil: ${result.message}`);
+          }
+
+          formRef.current?.reset();
+          setFile(null);
+          setTimeout(() => router.refresh(), 3000);
+          return;
+        }
+
+        // ── Cédula de identidad ──────────────────────────────────────────────
         if (!isCarnet || !file || !/\.(jpg|jpeg|png)$/i.test(file.name)) {
           toast.success("Documento subido");
           setPhase("idle");
@@ -224,8 +270,6 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet }: Props
     });
   }
 
-  const phaseMsg = PHASE_MESSAGE[phase];
-
   return (
     <div className="space-y-5">
 
@@ -246,31 +290,31 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet }: Props
             </div>
             <div className="text-center">
               <p className={`text-sm font-semibold ${file ? "text-primary" : "text-foreground"}`}>
-                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : "Selecciona el documento")}
+                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : isAntecedentes ? "Selecciona el certificado PDF" : "Selecciona el documento")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isCarnet ? "JPG o PNG — frente del carnet" : "PDF, JPG o PNG"}
+                {isCarnet ? "JPG o PNG — frente del carnet" : isAntecedentes ? "PDF del Registro Civil" : "PDF, JPG o PNG"}
               </p>
             </div>
             <input
               type="file"
               name="file"
-              accept={isCarnet ? ".jpg,.jpeg,.png" : ".pdf,.jpg,.jpeg,.png"}
+              accept={isCarnet ? ".jpg,.jpeg,.png" : isAntecedentes ? ".pdf" : ".pdf,.jpg,.jpeg,.png"}
               className="hidden"
               onChange={handleFileChange}
               required
             />
           </label>
 
-          {isCarnet && (
+          {(isCarnet || isAntecedentes) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
-              La IA extrae los datos y verifica vigencia en Registro Civil automáticamente
+              La IA extrae los datos y verifica autenticidad en Registro Civil automáticamente
             </p>
           )}
 
           <Button type="submit" disabled={!file} className="w-full gap-2 h-10 font-semibold">
-            {isCarnet ? (
+            {(isCarnet || isAntecedentes) ? (
               <><ScanLine className="w-4 h-4" /> Subir y verificar automáticamente</>
             ) : "Subir documento"}
           </Button>
@@ -301,12 +345,127 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet }: Props
             </div>
           )}
 
-          {/* Extracted data */}
+          {/* Extracted data — carnet */}
           {extracted && <ExtractedCard data={extracted} dim={phase === "verifying"} />}
+
+          {/* Extracted data — antecedentes */}
+          {extractedAnt && (
+            <div className={`transition-all duration-500 ${phase === "verifying" ? "opacity-40 scale-[0.99]" : "opacity-100 scale-100"}`}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="w-5 h-5 rounded-md bg-violet-100 flex items-center justify-center">
+                  <Brain className="w-3 h-3 text-violet-600" />
+                </div>
+                <p className="text-xs font-semibold text-violet-700">Datos extraídos por Claude</p>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: "Nombre",    value: extractedAnt.fullName },
+                  { label: "RUT",       value: extractedAnt.rut },
+                  { label: "Folio",     value: extractedAnt.folio },
+                  { label: "Código",    value: extractedAnt.codigoVerificacion },
+                  { label: "Emisión",   value: extractedAnt.fechaEmision },
+                  { label: "Tipo",      value: extractedAnt.tipoFines },
+                ].filter(f => f.value).map(({ label, value }) => (
+                  <div key={label} className="bg-white rounded-xl border border-border/60 px-3 py-2.5 shadow-sm">
+                    <p className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">{label}</p>
+                    <p className="text-sm font-bold font-mono text-foreground truncate">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Result */}
+      {/* Result — antecedentes */}
+      {verificationAnt && (phase === "done_ok" || phase === "done_fail") && (
+        <div className={`rounded-2xl overflow-hidden border shadow-lg ${
+          verificationAnt.valid ? "border-emerald-200 shadow-emerald-100" : "border-red-200 shadow-red-100"
+        }`}>
+          <div className={`relative px-5 py-5 overflow-hidden ${
+            verificationAnt.valid ? "bg-gradient-to-br from-emerald-500 to-emerald-600" : "bg-gradient-to-br from-red-500 to-red-600"
+          }`}>
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, white 0%, transparent 60%)" }} />
+            <div className="relative flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                {verificationAnt.valid ? <ShieldCheck className="w-6 h-6 text-white" /> : <ShieldAlert className="w-6 h-6 text-white" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-white leading-tight">
+                  {verificationAnt.valid ? "Certificado VÁLIDO" : `Certificado ${verificationAnt.status}`}
+                </p>
+                <p className="text-sm text-white/80 mt-0.5">
+                  {verificationAnt.valid ? "Verificado automáticamente en el Registro Civil de Chile" : verificationAnt.message}
+                </p>
+                {verificationAnt.valid && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[
+                      { label: "Folio", value: verificationAnt.confirmedFolio ?? extractedAnt?.folio },
+                      { label: "RUT",   value: verificationAnt.confirmedRut   ?? extractedAnt?.rut },
+                    ].filter(f => f.value).map(({ label, value }) => (
+                      <div key={label} className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
+                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">{label}</p>
+                        <p className="text-xs font-bold text-white font-mono">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {verificationAnt.valid && extractedAnt && (
+            <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100">
+              <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest mb-3">Datos confirmados</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {[
+                  { label: "Titular",   value: extractedAnt.fullName },
+                  { label: "Tipo",      value: extractedAnt.tipoFines },
+                  { label: "Emisión",   value: extractedAnt.fechaEmision },
+                  { label: "Resultado", value: extractedAnt.sinAntecedentes ? "Sin antecedentes" : "Con antecedentes" },
+                ].filter(f => f.value).map(({ label, value }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-2.5 h-2.5 text-emerald-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
+                      <p className="text-xs font-bold text-emerald-900 truncate">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="px-5 py-4 bg-white">
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Proceso automático ejecutado</p>
+            <div className="relative">
+              <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
+              <div className="space-y-4">
+                {[
+                  { icon: <Brain className="w-4 h-4" />, color: "bg-violet-100 text-violet-600", label: "Claude (Anthropic)", detail: "Analizó el PDF y extrajo folio y código de verificación sin intervención manual." },
+                  { icon: <Bot className="w-4 h-4" />,   color: "bg-blue-100 text-blue-600",    label: "Resolución automática de CAPTCHA", detail: "El sistema resolvió el desafío de seguridad del sitio oficial del Registro Civil." },
+                  { icon: <Landmark className="w-4 h-4" />, color: "bg-amber-100 text-amber-700", label: "Consulta al SRCeI", detail: `Se verificó el folio ${extractedAnt?.folio ?? "—"} en el sistema oficial del Estado.` },
+                  verificationAnt.valid
+                    ? { icon: <Sparkles className="w-4 h-4" />, color: "bg-emerald-100 text-emerald-600", label: "Aprobación automática", detail: "El certificado fue aprobado en el sistema sin ninguna intervención manual." }
+                    : { icon: <X className="w-4 h-4" />,        color: "bg-red-100 text-red-600",         label: "Revisión manual requerida", detail: "El certificado no pudo ser validado automáticamente y requiere revisión." },
+                ].map(({ icon, color, label, detail }, i) => (
+                  <div key={i} className="flex gap-3 relative">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 z-10 ${color}`}>{icon}</div>
+                    <div className="pt-1 min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground leading-none">{label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result — carnet */}
       {verification && (phase === "done_ok" || phase === "done_fail") && (
         <div className={`rounded-2xl overflow-hidden border shadow-lg ${
           verification.valid ? "border-emerald-200 shadow-emerald-100" : "border-red-200 shadow-red-100"
@@ -416,10 +575,10 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet }: Props
         <Button
           size="sm"
           variant="outline"
-          onClick={() => { setPhase("idle"); setExtracted(null); setVerification(null); }}
+          onClick={() => { setPhase("idle"); setExtracted(null); setExtractedAnt(null); setVerification(null); setVerificationAnt(null); }}
           className="w-full"
         >
-          Intentar con otra imagen
+          {isAntecedentes ? "Intentar con otro PDF" : "Intentar con otra imagen"}
         </Button>
       )}
     </div>
