@@ -67,11 +67,16 @@ export async function validateLicenciaDoc(
 
   const result: LicenciaValidationResult & { ok: boolean } = await res.json();
 
-  // Guarda clase de licencia como documentNumber para referencia
+  // Guarda clase + vigencia como documentNumber para mostrarla en el pipeline
   if (result.data?.clases) {
+    const vigencia = result.fechaVencimientoExtendida ?? result.fechaVencimientoReal;
     await db.workerDocument.update({
       where: { id: workerDocumentId },
-      data: { documentNumber: result.data.clases },
+      data: {
+        documentNumber: vigencia
+          ? `${result.data.clases} · vigente hasta ${vigencia}`
+          : result.data.clases,
+      },
     });
   }
 

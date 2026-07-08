@@ -62,15 +62,16 @@ const PHASE_MESSAGE_LICENCIA: Partial<Record<Phase, { title: string; subtitle: s
   verifying:  { title: "Validando vigencia…",           subtitle: "Verificando fecha con extensión legal de 1 año" },
 };
 
-function StepIndicator({ phase }: { phase: Phase }) {
+function StepIndicator({ phase, verifyLabel = "Registro Civil" }: { phase: Phase; verifyLabel?: string }) {
   if (phase === "idle" || phase === "error") return null;
+  const steps = STEPS.map((s) => (s.key === "verifying" ? { ...s, label: verifyLabel } : s));
   const current = PHASE_STEP[phase];
   const done_all = phase === "done_ok";
   const failed = phase === "done_fail";
 
   return (
     <div className="flex items-start gap-0">
-      {STEPS.map((s, i) => {
+      {steps.map((s, i) => {
         const isDone = i < current || done_all;
         const isActive = i === current && !done_all && !failed;
         const isFail = failed && i === current;
@@ -97,7 +98,7 @@ function StepIndicator({ phase }: { phase: Phase }) {
                 isActive ? "text-primary" : isDone ? "text-emerald-600" : "text-muted-foreground/60"
               }`}>{s.label}</span>
             </div>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div className="flex-1 mt-4 mx-1">
                 <div className={`h-0.5 w-full rounded-full transition-all duration-700 ${i < current || done_all ? "bg-emerald-400" : "bg-muted"}`} />
               </div>
@@ -420,7 +421,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
       {/* Progress */}
       {phase !== "idle" && phase !== "error" && (
         <div className="space-y-4">
-          <StepIndicator phase={phase} />
+          <StepIndicator phase={phase} verifyLabel={isLicencia ? "Vigencia" : "Registro Civil"} />
 
           {/* Active step card */}
           {isProcessing && phaseMsg && (
