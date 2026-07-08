@@ -247,7 +247,6 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
-  const [fileBack, setFileBack] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [extracted, setExtracted] = useState<CarnetExtracted | null>(null);
   const [extractedAnt, setExtractedAnt] = useState<AntecedentesExtracted | null>(null);
@@ -263,7 +262,6 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
     setFile(e.target.files?.[0] ?? null);
     setPhase("idle");
     setExtracted(null);
-    setFileBack(null);
     setExtractedAnt(null);
     setVerification(null);
     setVerificationAnt(null);
@@ -279,13 +277,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
         // ── Licencia de conducir ─────────────────────────────────────────────
         if (isLicencia) {
           setPhase("extracting");
-          // Leer reverso en base64 en el cliente antes de llamar al server action
-          let backBase64: string | undefined;
-          if (fileBack) {
-            const buf = await fileBack.arrayBuffer();
-            backBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-          }
-          const result = await validateLicenciaDoc(documentId, backBase64, fileBack?.name);
+          const result = await validateLicenciaDoc(documentId);
           setVerificationLic(result);
           setPhase(result.valid ? "done_ok" : "done_fail");
 
@@ -392,10 +384,10 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             </div>
             <div className="text-center">
               <p className={`text-sm font-semibold ${file ? "text-primary" : "text-foreground"}`}>
-                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : isAntecedentes ? "Selecciona el certificado PDF" : isLicencia ? "Anverso de la licencia" : "Selecciona el documento")}
+                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : isAntecedentes ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona la licencia de conducir" : "Selecciona el documento")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isCarnet ? "JPG o PNG — frente del carnet" : isAntecedentes ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — lado frontal" : "PDF, JPG o PNG"}
+                {isCarnet ? "JPG o PNG — frente del carnet" : isAntecedentes ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — un solo archivo" : "PDF, JPG o PNG"}
               </p>
             </div>
             <input
@@ -408,40 +400,11 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             />
           </label>
 
-          {/* Reverso — solo para licencia */}
-          {isLicencia && (
-            <label className={`
-              group relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-dashed cursor-pointer
-              transition-all duration-200
-              ${fileBack
-                ? "border-primary/40 bg-primary/5"
-                : "border-border hover:border-primary/40 hover:bg-muted/40"}
-            `}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                fileBack ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-              }`}>
-                <ScanLine className="w-4 h-4" />
-              </div>
-              <div className="text-center">
-                <p className={`text-sm font-semibold ${fileBack ? "text-primary" : "text-foreground"}`}>
-                  {fileBack?.name ?? "Reverso de la licencia"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG o PDF — lado trasero</p>
-              </div>
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
-                className="hidden"
-                onChange={(e) => setFileBack(e.target.files?.[0] ?? null)}
-              />
-            </label>
-          )}
-
           {(isCarnet || isAntecedentes || isLicencia) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
               {isLicencia
-                ? "La IA lee ambos lados y valida la vigencia con extensión legal de +1 año"
+                ? "La IA lee la licencia y valida la vigencia con extensión legal de +1 año"
                 : "La IA extrae los datos y verifica autenticidad en Registro Civil automáticamente"}
             </p>
           )}

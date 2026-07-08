@@ -38,8 +38,6 @@ function getMime(fileName: string): string {
 
 export async function validateLicenciaDoc(
   workerDocumentId: string,
-  backBase64?: string,   // reverso en base64, enviado desde el cliente
-  backFileName?: string,
 ): Promise<LicenciaValidationResult> {
   const doc = await db.workerDocument.findUnique({
     where: { id: workerDocumentId },
@@ -57,11 +55,6 @@ export async function validateLicenciaDoc(
     frontMime: getMime(doc.fileName),
     workerRut: doc.worker.rut,
   };
-
-  if (backBase64) {
-    body.back = backBase64;
-    body.backMime = getMime(backFileName ?? "back.jpg");
-  }
 
   const res = await fetch(`${VERIFICADOR_URL}/validate/licencia`, {
     method: "POST",
