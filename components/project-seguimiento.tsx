@@ -171,6 +171,9 @@ function CargoRow({ row, stagesTotal }: { row: SeguimientoRow; stagesTotal: numb
 // ─── Vista principal ──────────────────────────────────────────────────────────
 export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
   const stagesTotal = data.stages.length;
+  // Chevron seleccionado: order de etapa, stagesTotal+1 = habilitados, null = ninguno
+  const [selectedStage, setSelectedStage] = useState<number | null>(null);
+  const toggleStage = (key: number) => setSelectedStage((s) => (s === key ? null : key));
 
   const kpis = [
     { label: "Dotación requerida", value: data.kpis.dotacionRequerida, icon: Users, grad: "from-blue-500 to-blue-600", shadow: "shadow-blue-500/25" },
@@ -205,11 +208,17 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
       <div className="flex w-full overflow-hidden rounded-xl border border-border shadow-sm">
         {data.stages.map((stage, i) => {
           const Icon = STAGE_ICONS[i] ?? FileText;
+          const dispCount = data.disponibles[stage.order]?.length ?? 0;
+          const selected = selectedStage === stage.order;
           return (
-            <div
+            <button
               key={stage.order}
-              className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-3 px-2 text-white ${COL_COLORS[i].chevron}`}
+              onClick={() => toggleStage(stage.order)}
+              className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-3 px-2 text-white cursor-pointer transition-all ${COL_COLORS[i].chevron} ${
+                selected ? "ring-2 ring-inset ring-white/50 shadow-inner" : "hover:brightness-110"
+              }`}
               style={{ clipPath: CHEVRON_CLIP }}
+              title={`${dispCount} disponible${dispCount !== 1 ? "s" : ""} fuera del proyecto`}
             >
               <div className="flex items-center gap-1.5">
                 <Icon className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
@@ -220,23 +229,110 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
               <span className="text-lg font-black leading-none">
                 <CountUp value={data.stageTotals[i]} duration={1} />
               </span>
-            </div>
+              {dispCount > 0 && (
+                <span className="text-[8px] font-semibold text-white/70 leading-none">+{dispCount} disp.</span>
+              )}
+            </button>
           );
         })}
         {/* Habilitados */}
-        <div
-          className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-3 px-2 text-white ${HAB_COLOR.chevron}`}
-          style={{ clipPath: CHEVRON_CLIP }}
-        >
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
-            <span className="text-[10px] font-bold uppercase tracking-wide leading-tight">Habilitados</span>
-          </div>
-          <span className="text-lg font-black leading-none">
-            <CountUp value={data.habilitadosTotal} duration={1} />
-          </span>
-        </div>
+        {(() => {
+          const habKey = stagesTotal + 1;
+          const dispCount = data.disponibles[habKey]?.length ?? 0;
+          const selected = selectedStage === habKey;
+          return (
+            <button
+              onClick={() => toggleStage(habKey)}
+              className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-3 px-2 text-white cursor-pointer transition-all ${HAB_COLOR.chevron} ${
+                selected ? "ring-2 ring-inset ring-white/50 shadow-inner" : "hover:brightness-110"
+              }`}
+              style={{ clipPath: CHEVRON_CLIP }}
+              title={`${dispCount} habilitado${dispCount !== 1 ? "s" : ""} disponible${dispCount !== 1 ? "s" : ""} fuera del proyecto`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
+                <span className="text-[10px] font-bold uppercase tracking-wide leading-tight">Habilitados</span>
+              </div>
+              <span className="text-lg font-black leading-none">
+                <CountUp value={data.habilitadosTotal} duration={1} />
+              </span>
+              {dispCount > 0 && (
+                <span className="text-[8px] font-semibold text-white/70 leading-none">+{dispCount} disp.</span>
+              )}
+            </button>
+          );
+        })()}
       </div>
+
+      {/* Panel: disponibles en la etapa seleccionada (no asignados al proyecto) */}
+      <AnimatePresence>
+        {selectedStage !== null && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            {(() => {
+              const habKey = stagesTotal + 1;
+              const isHab = selectedStage === habKey;
+              const list = data.disponibles[selectedStage] ?? [];
+              const col = isHab ? HAB_COLOR : COL_COLORS[selectedStage - 1] ?? COL_COLORS[0];
+              const stageName = isHab
+                ? "Habilitados"
+                : data.stages.find((st) => st.order === selectedStage)?.name ?? "";
+              return (
+                <div className={`rounded-2xl border p-4 ${isHab ? "border-emerald-200 bg-emerald-50/30" : "bg-background"}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-bold text-foreground">
+                      Disponibles en <span className={col.text}>{stageName}</span>
+                      <span className="text-muted-foreground font-normal"> — no asignados a este proyecto</span>
+                    </p>
+                    <span className={`text-xs font-black ${col.text}`}>{list.length}</span>
+                  </div>
+                  {list.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic py-2">
+                      No hay trabajadores disponibles en esta etapa fuera del proyecto.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                      {list.map((w) => (
+                        <Link
+                          key={w.id}
+                          href={`/dashboard/trabajadores/${w.id}`}
+                          className="flex items-center gap-2.5 rounded-lg border bg-background px-3 py-2 hover:border-primary/40 hover:shadow-sm transition-all group"
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${col.soft}`}>
+                            {w.habilitado
+                              ? <Trophy className={`w-3.5 h-3.5 ${col.text}`} />
+                              : <span className={`text-[10px] font-black ${col.text}`}>{w.stageOrder}</span>}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">{w.fullName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {w.rut}{w.roleName ? ` · ${w.roleName}` : ""}
+                            </p>
+                          </div>
+                          {w.roleColor && (
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: w.roleColor }} />
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {isHab && list.length > 0 && (
+                    <p className="text-[11px] text-emerald-700 mt-3 flex items-center gap-1.5">
+                      <Check className="w-3 h-3" />
+                      Estos trabajadores están habilitados y listos — usa "Asignar trabajador" para sumarlos a la faena.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Matriz cargo × etapa */}
       <div className="bg-background rounded-2xl border shadow-sm p-4">

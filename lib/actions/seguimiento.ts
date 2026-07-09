@@ -24,10 +24,23 @@ export type SeguimientoRow = {
   workers: SeguimientoWorker[];
 };
 
+export type DisponibleWorker = {
+  id: string;
+  fullName: string;
+  rut: string;
+  stageOrder: number;
+  habilitado: boolean;
+  roleName: string | null;
+  roleColor: string | null;
+};
+
 export type SeguimientoData = {
   stages: { order: number; name: string }[];
   stageTotals: number[]; // por etapa
   habilitadosTotal: number;
+  // Trabajadores NO asignados a este proyecto, agrupados por etapa
+  // (clave = order de etapa; stagesTotal + 1 = habilitados)
+  disponibles: Record<number, DisponibleWorker[]>;
   kpis: {
     dotacionRequerida: number;
     asignados: number;
@@ -154,10 +167,33 @@ export async function getProjectSeguimiento(projectId: string): Promise<Seguimie
   const asignados = workerMap.size;
   const dotacionRequerida = currentWeek?.cargosTotales ?? 0;
 
+  // Pool disponible: trabajadores no asignados a este proyecto, por etapa
+  const assignedIds = Array.from(workerMap.keys());
+  const noAsignados = await db.worker.findMany({
+    where: { id: { notIn: assignedIds } },
+    include: { role: true },
+    orderBy: { fullName: "asc" },
+  });
+  const disponibles: Record<number, DisponibleWorker[]> = {};
+  for (const w of noAsignados) {
+    const habilitado = w.currentStageOrder > stagesTotal;
+    const key = habilitado ? stagesTotal + 1 : w.currentStageOrder;
+    (disponibles[key] ??= []).push({
+      id: w.id,
+      fullName: w.fullName,
+      rut: w.rut,
+      stageOrder: w.currentStageOrder,
+      habilitado,
+      roleName: w.role?.name ?? null,
+      roleColor: w.role?.color ?? null,
+    });
+  }
+
   return {
     stages,
     stageTotals,
     habilitadosTotal,
+    disponibles,
     kpis: {
       dotacionRequerida,
       asignados,
