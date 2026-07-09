@@ -1,5 +1,6 @@
 import { getProject, getRoles } from "@/lib/actions/projects";
 import { getProjectDotacionByWeek, getProjectCriticalForecast } from "@/lib/actions/workers";
+import { getProjectSeguimiento } from "@/lib/actions/seguimiento";
 import { notFound } from "next/navigation";
 import { formatDate, getProjectProgress, getTotalHeadcount, statusConfig } from "@/lib/project-utils";
 import { ProjectViewTabs } from "@/components/project-view-tabs";
@@ -11,11 +12,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { auth } = await import("@/lib/auth");
   const session = await auth();
   const canWrite = (session?.user as { role?: string } | undefined)?.role !== "AUDITOR";
-  const [project, weeksData, criticalForecast, roles] = await Promise.all([
+  const [project, weeksData, criticalForecast, roles, seguimiento] = await Promise.all([
     getProject(id),
     getProjectDotacionByWeek(id),
     getProjectCriticalForecast(id),
     getRoles(),
+    getProjectSeguimiento(id),
   ]);
 
   if (!project) notFound();
@@ -56,6 +58,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <ProjectViewTabs
           canWrite={canWrite}
+          seguimiento={seguimiento}
           weeksData={weeksData}
           criticalForecast={criticalForecast}
           projectProgress={projectProgress}

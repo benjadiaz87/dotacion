@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DotacionView } from "@/components/dotacion-view";
 import { GanttChart } from "@/components/gantt-chart";
 import { AssignWorkerDialog } from "@/components/assign-worker-dialog";
-import { LayoutGrid, Users } from "lucide-react";
+import { LayoutGrid, ListChecks, Users } from "lucide-react";
 import type { CriticalForecast, WeekDotacion } from "@/lib/actions/workers";
+import { ProjectSeguimiento } from "@/components/project-seguimiento";
+import type { SeguimientoData } from "@/lib/actions/seguimiento";
 
 type Role = { id: string; name: string; color: string };
 type WeekPlan = {
@@ -19,6 +21,7 @@ type WeekPlan = {
 
 interface Props {
   canWrite?: boolean;
+  seguimiento: SeguimientoData;
   weeksData: WeekDotacion[];
   criticalForecast: CriticalForecast;
   projectProgress: number;
@@ -29,11 +32,12 @@ interface Props {
 
 const TABS = [
   { key: "dotacion" as const, label: "Dotación", icon: Users },
+  { key: "seguimiento" as const, label: "Seguimiento", icon: ListChecks },
   { key: "gantt" as const, label: "Carta Gantt", icon: LayoutGrid },
 ];
 
-export function ProjectViewTabs({ canWrite = true, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
-  const [view, setView] = useState<"dotacion" | "gantt">("dotacion");
+export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
+  const [view, setView] = useState<"dotacion" | "seguimiento" | "gantt">("dotacion");
 
   return (
     <div>
@@ -79,6 +83,8 @@ export function ProjectViewTabs({ canWrite = true, weeksData, criticalForecast, 
               roles={roles}
               weekPlans={weekPlans.map((w) => ({ id: w.id, weekNumber: w.weekNumber }))}
             />
+          ) : view === "seguimiento" ? (
+            <ProjectSeguimiento data={seguimiento} />
           ) : (
             <GanttChart weekPlans={weekPlans} startDate={startDate} />
           )}
