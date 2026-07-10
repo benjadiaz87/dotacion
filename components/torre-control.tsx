@@ -202,8 +202,10 @@ export function TorreControl({
               data={chartData}
               margin={{ top: 8, right: 12, left: -18, bottom: 0 }}
               onClick={(e) => {
-                const idx = e?.activeTooltipIndex;
-                if (typeof idx === "number") setWeekFilter((f) => (f === idx ? null : idx));
+                // recharts v3 puede entregar activeTooltipIndex como string
+                const raw = (e as { activeTooltipIndex?: number | string } | null)?.activeTooltipIndex;
+                const idx = raw === undefined || raw === null ? NaN : Number(raw);
+                if (Number.isFinite(idx) && idx >= 0) setWeekFilter((f) => (f === idx ? null : idx));
               }}
               style={{ cursor: "pointer" }}
             >
