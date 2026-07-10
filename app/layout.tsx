@@ -12,7 +12,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${inter.variable} h-full antialiased`}>
+    // suppressHydrationWarning: extensiones del navegador (p. ej. Chrome Remote
+    // Desktop) inyectan atributos en <html> antes de que React hidrate
+    <html lang="es" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
       <body className="h-full">
         {children}
         <Toaster richColors position="top-right" />
