@@ -202,7 +202,12 @@ function WorkerRow({ worker, weekPlanId }: { worker: DotacionWorker; weekPlanId:
 }
 
 export function DotacionView({ weeksData, projectProgress, criticalForecast, roles, weekPlans }: Props) {
-  const [weekIndex, setWeekIndex] = useState<number | null>(null);
+  // Por defecto se muestra la semana actual (el slider permite volver atrás o ver el acumulado)
+  const now = Date.now();
+  const currentWeekIdx = weeksData.findIndex(
+    (w) => now >= new Date(w.startDate).getTime() && now <= new Date(w.endDate).getTime()
+  );
+  const [weekIndex, setWeekIndex] = useState<number | null>(currentWeekIdx >= 0 ? currentWeekIdx : null);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState(ALL);
