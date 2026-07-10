@@ -7,6 +7,7 @@ import React from "react";
 import {
   BadgeCheck,
   BarChart3,
+  Bell,
   FolderKanban,
   KeyRound,
   LayoutDashboard,
@@ -32,15 +33,17 @@ const navItems: { href: string; label: string; icon: React.ElementType; disabled
   { href: "/dashboard/proyectos", label: "Proyectos", icon: FolderKanban },
   { href: "/dashboard/empleados", label: "Empleados", icon: Users },
   { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/dashboard/alertas", label: "Alertas", icon: Bell },
   { href: "/dashboard/cargos", label: "Cargos", icon: BadgeCheck, superadminOnly: true },
   { href: "/dashboard/acceso", label: "Acceso", icon: KeyRound, superadminOnly: true },
 ];
 
 interface SidebarProps {
   user: { name?: string | null; email?: string | null; role?: string | null };
+  alertasCriticas?: number;
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, alertasCriticas = 0 }: SidebarProps) {
   const pathname = usePathname();
   const visibleItems = navItems.filter(
     (item) => !item.superadminOnly || user.role === "SUPERADMIN"
@@ -111,6 +114,11 @@ export function Sidebar({ user }: SidebarProps) {
               {badge && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded relative z-10" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
                   {badge}
+                </span>
+              )}
+              {href === "/dashboard/alertas" && alertasCriticas > 0 && (
+                <span className="relative z-10 min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">
+                  {alertasCriticas}
                 </span>
               )}
               {active && (

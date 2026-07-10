@@ -36,6 +36,7 @@ model Project {
   userId    String
   user      User       @relation(fields: [userId], references: [id])
   weekPlans WeekPlan[]
+  curveChanges CurveChangeLog[]
 
   @@map("projects")
 }
@@ -152,6 +153,7 @@ model WorkerDocument {
   fileName       String
   documentNumber String?
   verifyNote     String?  // último resultado de verificación fallida (ej: RUT no coincide)
+  expiresAt      DateTime? // vencimiento del documento (exámenes, licencias)
   uploadedAt     DateTime @default(now())
 
   workerId String
@@ -209,4 +211,32 @@ model RoleRequirement {
 
   @@unique([weekPlanId, roleId])
   @@map("role_requirements")
+}
+
+model AlertSetting {
+  id                  String  @id @default("default")
+  gapsEnabled         Boolean @default(true)
+  gapsSemanas         Int     @default(3)  // horizonte de detección de gaps
+  salidasEnabled      Boolean @default(true)
+  salidasSemanas      Int     @default(3)
+  vencimientosEnabled Boolean @default(true)
+  vencimientoDias     Int     @default(30) // anticipación del aviso de vencimiento
+  curvaEnabled        Boolean @default(true)
+  updatedAt           DateTime @updatedAt
+
+  @@map("alert_settings")
+}
+
+model CurveChangeLog {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  weekNumber Int
+  roleName   String
+  oldQty     Int
+  newQty     Int
+  changedBy  String   @default("admin")
+  createdAt  DateTime @default(now())
+
+  @@map("curve_change_logs")
 }
