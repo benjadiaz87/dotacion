@@ -333,9 +333,18 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const [verificationLic, setVerificationLic] = useState<LicenciaValidationResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const captureInputRef = useRef<HTMLInputElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   // La cámara aplica solo a tipos que aceptan imágenes (los certificados RC son PDF)
   const acceptsImages = !(isAntecedentes || isHojaVida);
+
+  function openCamera() {
+    // En móviles la cámara nativa del sistema es más confiable que getUserMedia
+    // (y funciona sin HTTPS); en desktop usamos el modal con vista previa.
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    if (isTouch) captureInputRef.current?.click();
+    else setCameraOpen(true);
+  }
 
   function handleCameraCapture(captured: File) {
     // Inyecta la foto en el input del formulario para que viaje en el FormData
@@ -530,9 +539,22 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           </label>
 
           {acceptsImages && (
-            <Button type="button" variant="outline" className="w-full gap-2 h-10" onClick={() => setCameraOpen(true)}>
-              <Camera className="w-4 h-4" /> Tomar foto con la cámara
-            </Button>
+            <>
+              <Button type="button" variant="outline" className="w-full gap-2 h-10" onClick={openCamera}>
+                <Camera className="w-4 h-4" /> Tomar foto con la cámara
+              </Button>
+              <input
+                ref={captureInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleCameraCapture(f);
+                }}
+              />
+            </>
           )}
 
           {cameraOpen && <CameraCaptureModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
