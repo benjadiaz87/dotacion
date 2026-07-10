@@ -137,10 +137,46 @@ function ExceptionForm({ docName, onConfirm, onCancel }: {
   );
 }
 
+// ─── Datos capturados por la IA (chips) ───────────────────────────────────────
+const EXTRACT_LABELS: Record<string, string> = {
+  rut: "RUT", fullName: "Nombre", documentNumber: "N° serie", birthDate: "Nacimiento",
+  expiryDate: "Vencimiento", nationality: "Nacionalidad",
+  folio: "Folio", codigoVerificacion: "Cód. verificación", fechaEmision: "Emisión",
+  tipoFines: "Tipo", sinAntecedentes: "Sin antecedentes",
+  fechaNacimiento: "Nacimiento", fechaVencimiento: "Vencimiento",
+  clases: "Clases", restricciones: "Restricciones", numero: "N° licencia",
+  fechaVencimientoReal: "Vence (real)", fechaVencimientoExtendida: "Vence (ext. legal)",
+};
+
+function ExtractedChips({ raw }: { raw: string | null }) {
+  if (!raw) return null;
+  let data: Record<string, unknown>;
+  try { data = JSON.parse(raw); } catch { return null; }
+  const entries = Object.entries(data).filter(([k, v]) => v !== null && v !== "" && EXTRACT_LABELS[k]);
+  if (entries.length === 0) return null;
+  return (
+    <div className="mb-3">
+      <p className="text-[9px] font-bold uppercase tracking-widest text-violet-500 mb-1.5">
+        Datos capturados por la IA
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {entries.map(([k, v]) => (
+          <span key={k} className="inline-flex items-center gap-1.5 rounded-md border border-violet-100 bg-violet-50/50 px-2 py-1">
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-violet-400">{EXTRACT_LABELS[k]}</span>
+            <span className="text-[11px] font-bold font-mono text-foreground">
+              {typeof v === "boolean" ? (v ? "Sí" : "No") : String(v)}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Document row ─────────────────────────────────────────────────────────────
 function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, onApprove, onReject, onException }: {
   doc: StageWithDocs["requirements"][0] & {
-    uploaded?: { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null; verifyNote: string | null };
+    uploaded?: { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null; verifyNote: string | null; extractedData: string | null; expiresAt: Date | string | null; issuedAt: Date | string | null };
     exception?: { justification: string };
     pendingExc?: string;
   };
@@ -258,6 +294,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
       {/* Detalle del documento */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-dashed mt-1 pt-3">
+          {doc.uploaded && <ExtractedChips raw={doc.uploaded.extractedData} />}
           {isCurrentStage ? (
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (

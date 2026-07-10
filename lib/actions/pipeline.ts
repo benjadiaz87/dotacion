@@ -24,7 +24,7 @@ export type WorkerPipelineData = {
   currentStageOrder: number;
   stages: StageWithDocs[];
   // Documents the worker has already uploaded (keyed by documentTypeId)
-  documents: Record<string, { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null; verifyNote: string | null }>;
+  documents: Record<string, { id: string; status: string; fileUrl: string; fileName: string; documentNumber: string | null; verifyNote: string | null; extractedData: string | null; expiresAt: Date | null; issuedAt: Date | null }>;
   // Exceptions granted (keyed by `${stageId}:${documentTypeId}`)
   exceptions: Record<string, { justification: string; createdAt: Date }>;
   // Primary role (for role-specific doc filtering)
@@ -72,7 +72,7 @@ export async function getWorkerPipeline(workerId: string): Promise<WorkerPipelin
   }
 
   const documents = Object.fromEntries(
-    worker.documents.map((d) => [d.documentTypeId, { id: d.id, status: d.status, fileUrl: d.fileUrl, fileName: d.fileName, documentNumber: d.documentNumber, verifyNote: d.verifyNote }])
+    worker.documents.map((d) => [d.documentTypeId, { id: d.id, status: d.status, fileUrl: d.fileUrl, fileName: d.fileName, documentNumber: d.documentNumber, verifyNote: d.verifyNote, extractedData: d.extractedData, expiresAt: d.expiresAt, issuedAt: d.issuedAt }])
   );
 
   const exceptions = Object.fromEntries(

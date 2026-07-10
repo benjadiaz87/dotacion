@@ -154,6 +154,8 @@ model WorkerDocument {
   documentNumber String?
   verifyNote     String?  // último resultado de verificación fallida (ej: RUT no coincide)
   expiresAt      DateTime? // vencimiento del documento (exámenes, licencias)
+  issuedAt       DateTime? // fecha de emisión (ej: certificado de antecedentes)
+  extractedData  String?   // JSON con todos los datos leídos por la IA
   uploadedAt     DateTime @default(now())
 
   workerId String

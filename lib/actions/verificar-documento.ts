@@ -132,9 +132,9 @@ export async function validateLicenciaDoc(
   }
   await saveVerifyNote(workerDocumentId, result.valid, result.message);
 
-  // Guarda clase + vigencia como documentNumber, y el vencimiento efectivo
-  // (con extensión legal +1 año si aplica) en expiresAt para las alertas
-  if (result.data?.clases || result.fechaVencimientoExtendida || result.fechaVencimientoReal) {
+  // Guarda clase + vigencia como documentNumber, el vencimiento efectivo
+  // (con extensión legal +1 año) en expiresAt, y el payload completo de la IA
+  {
     const vigencia = result.fechaVencimientoExtendida ?? result.fechaVencimientoReal;
     const expiresAt = parseFechaVencimiento(vigencia);
     await db.workerDocument.update({
@@ -144,6 +144,11 @@ export async function validateLicenciaDoc(
           ? { documentNumber: vigencia ? `${result.data.clases} · vigente hasta ${vigencia}` : result.data.clases }
           : {}),
         ...(expiresAt ? { expiresAt } : {}),
+        extractedData: JSON.stringify({
+          ...result.data,
+          fechaVencimientoReal: result.fechaVencimientoReal,
+          fechaVencimientoExtendida: result.fechaVencimientoExtendida,
+        }),
       },
     });
   }
@@ -203,13 +208,16 @@ export async function extractAntecedentesFromPdf(
 
   const { data }: { ok: boolean; data: AntecedentesExtracted } = await res.json();
 
-  // Guarda el folio como documentNumber para futuras referencias
-  if (data.folio) {
-    await db.workerDocument.update({
-      where: { id: workerDocumentId },
-      data: { documentNumber: data.folio },
-    });
-  }
+  // Guarda folio, fecha de emisión y el payload completo leído por la IA
+  const issuedAt = parseFechaVencimiento(data.fechaEmision);
+  await db.workerDocument.update({
+    where: { id: workerDocumentId },
+    data: {
+      ...(data.folio ? { documentNumber: data.folio } : {}),
+      ...(issuedAt ? { issuedAt } : {}),
+      extractedData: JSON.stringify(data),
+    },
+  });
 
   return data;
 }
@@ -309,17 +317,16 @@ export async function extractCarnetFromImage(
 
   const { data }: { ok: boolean; data: CarnetExtracted } = await res.json();
 
-  // Persistir N° de serie y fecha de vencimiento leída por la IA
+  // Persistir todo lo leído por la IA: N° de serie, vencimiento y payload completo
   const expiresAt = parseFechaVencimiento(data.expiryDate);
-  if (data.documentNumber || expiresAt) {
-    await db.workerDocument.update({
-      where: { id: workerDocumentId },
-      data: {
-        ...(data.documentNumber ? { documentNumber: data.documentNumber } : {}),
-        ...(expiresAt ? { expiresAt } : {}),
-      },
-    });
-  }
+  await db.workerDocument.update({
+    where: { id: workerDocumentId },
+    data: {
+      ...(data.documentNumber ? { documentNumber: data.documentNumber } : {}),
+      ...(expiresAt ? { expiresAt } : {}),
+      extractedData: JSON.stringify(data),
+    },
+  });
 
   return data;
 }
