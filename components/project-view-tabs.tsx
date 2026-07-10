@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DotacionView } from "@/components/dotacion-view";
-import { GanttChart } from "@/components/gantt-chart";
 import { AssignWorkerDialog } from "@/components/assign-worker-dialog";
-import { LayoutGrid, ListChecks, Users } from "lucide-react";
+import { ListChecks, Radar, Users } from "lucide-react";
 import type { CriticalForecast, WeekDotacion } from "@/lib/actions/workers";
 import { ProjectSeguimiento } from "@/components/project-seguimiento";
+import { TorreControl } from "@/components/torre-control";
 import type { SeguimientoData } from "@/lib/actions/seguimiento";
 
 type Role = { id: string; name: string; color: string };
@@ -31,13 +31,13 @@ interface Props {
 }
 
 const TABS = [
+  { key: "torre" as const, label: "Torre de Control", icon: Radar },
   { key: "dotacion" as const, label: "Dotación", icon: Users },
   { key: "seguimiento" as const, label: "Seguimiento", icon: ListChecks },
-  { key: "gantt" as const, label: "Carta Gantt", icon: LayoutGrid },
 ];
 
 export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
-  const [view, setView] = useState<"dotacion" | "seguimiento" | "gantt">("dotacion");
+  const [view, setView] = useState<"torre" | "dotacion" | "seguimiento">("torre");
 
   return (
     <div>
@@ -75,7 +75,13 @@ export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criti
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         >
-          {view === "dotacion" ? (
+          {view === "torre" ? (
+            <TorreControl
+              weeksData={weeksData}
+              disponiblesHabilitados={seguimiento.disponibles[seguimiento.stages.length + 1] ?? []}
+              canWrite={canWrite}
+            />
+          ) : view === "dotacion" ? (
             <DotacionView
               weeksData={weeksData}
               projectProgress={projectProgress}
@@ -83,10 +89,8 @@ export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criti
               roles={roles}
               weekPlans={weekPlans.map((w) => ({ id: w.id, weekNumber: w.weekNumber }))}
             />
-          ) : view === "seguimiento" ? (
-            <ProjectSeguimiento data={seguimiento} />
           ) : (
-            <GanttChart weekPlans={weekPlans} startDate={startDate} />
+            <ProjectSeguimiento data={seguimiento} />
           )}
         </motion.div>
       </AnimatePresence>

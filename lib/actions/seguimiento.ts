@@ -30,6 +30,7 @@ export type DisponibleWorker = {
   rut: string;
   stageOrder: number;
   habilitado: boolean;
+  roleId: string | null;
   roleName: string | null;
   roleColor: string | null;
 };
@@ -184,6 +185,7 @@ export async function getProjectSeguimiento(projectId: string): Promise<Seguimie
       rut: w.rut,
       stageOrder: w.currentStageOrder,
       habilitado,
+      roleId: w.role?.id ?? null,
       roleName: w.role?.name ?? null,
       roleColor: w.role?.color ?? null,
     });
