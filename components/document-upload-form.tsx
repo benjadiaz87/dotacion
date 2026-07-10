@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { uploadWorkerDocument } from "@/lib/actions/workers";
@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 import {
   Check, Upload, ScanLine, ShieldCheck, ShieldAlert,
-  User, Hash, Calendar, Flag, FileText, X, Brain, Bot, Landmark, Sparkles,
+  User, Hash, Calendar, Flag, FileText, X, Brain, Bot, Landmark, Sparkles, Camera,
 } from "lucide-react";
 
 interface Props {
@@ -252,6 +252,70 @@ const PROCESS_STEPS = (rut: string, serie: string, valid: boolean) => [
   },
 ];
 
+function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: File) => void; onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      .then((stream) => {
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+        setReady(true);
+      })
+      .catch(() => setError("No se pudo acceder a la cámara. Revisa los permisos del navegador."));
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  function capture() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")!.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      onCapture(new File([blob], `captura-${Date.now()}.jpg`, { type: "image/jpeg" }));
+    }, "image/jpeg", 0.92);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl bg-background overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <p className="text-sm font-semibold flex items-center gap-2"><Camera className="w-4 h-4 text-primary" /> Tomar foto del documento</p>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="relative aspect-[4/3] bg-black">
+          {error ? (
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-white/80 px-8 text-center">{error}</p>
+          ) : (
+            <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+          )}
+        </div>
+        <div className="p-4 flex gap-2">
+          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
+          <Button type="button" className="flex-1 gap-2" disabled={!ready || !!error} onClick={capture}>
+            <Camera className="w-4 h-4" /> Capturar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia, isHojaVida }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -263,6 +327,25 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const [verificationAnt, setVerificationAnt] = useState<AntecedentesVerificationResult | null>(null);
   const [verificationLic, setVerificationLic] = useState<LicenciaValidationResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  // La cámara aplica solo a tipos que aceptan imágenes (los certificados RC son PDF)
+  const acceptsImages = !(isAntecedentes || isHojaVida);
+
+  function handleCameraCapture(captured: File) {
+    // Inyecta la foto en el input del formulario para que viaje en el FormData
+    const dt = new DataTransfer();
+    dt.items.add(captured);
+    if (fileInputRef.current) fileInputRef.current.files = dt.files;
+    setCameraOpen(false);
+    setFile(captured);
+    setPhase("idle");
+    setExtracted(null);
+    setExtractedAnt(null);
+    setVerification(null);
+    setVerificationAnt(null);
+    setVerificationLic(null);
+  }
 
   const phaseMsg = isHojaVida ? PHASE_MESSAGE_HOJA_VIDA[phase] : isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
   const isProcessing = ["uploading", "extracting", "verifying"].includes(phase);
@@ -431,6 +514,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               </p>
             </div>
             <input
+              ref={fileInputRef}
               type="file"
               name="file"
               accept={isCarnet ? ".jpg,.jpeg,.png" : (isAntecedentes || isHojaVida) ? ".pdf" : isLicencia ? ".jpg,.jpeg,.png,.pdf" : ".pdf,.jpg,.jpeg,.png"}
@@ -439,6 +523,14 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               required
             />
           </label>
+
+          {acceptsImages && (
+            <Button type="button" variant="outline" className="w-full gap-2 h-10" onClick={() => setCameraOpen(true)}>
+              <Camera className="w-4 h-4" /> Tomar foto con la cámara
+            </Button>
+          )}
+
+          {cameraOpen && <CameraCaptureModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
 
           {(isCarnet || isAntecedentes || isLicencia || isHojaVida) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
