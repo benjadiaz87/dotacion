@@ -15,7 +15,7 @@ import {
   Link2, Copy, CheckCheck,
 } from "lucide-react";
 import { generateUploadToken } from "@/lib/actions/upload-token";
-import { verifyAllWorkerDocuments } from "@/lib/actions/verificar-documento";
+import { BulkVerifyOverlay, type BulkDoc } from "@/components/bulk-verify-overlay";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
@@ -497,7 +497,7 @@ function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, 
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
-  const [verifyingAll, setVerifyingAll] = useState(false);
+  const [bulkDocs, setBulkDocs] = useState<BulkDoc[] | null>(null);
 
   const enriched = stage.requirements.map((r) => ({
     ...r,
@@ -519,22 +519,14 @@ function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, 
     (d) => d.uploaded?.status === "PENDING" && isAutoVerifiable(d.documentType.name)
   ).length;
 
-  async function handleVerifyAll() {
-    setVerifyingAll(true);
-    try {
-      const results = await verifyAllWorkerDocuments(pipeline.workerId);
-      const ok = results.filter((r) => r.valid).length;
-      const fail = results.length - ok;
-      if (results.length === 0) toast.info("No hay documentos pendientes con verificación automática");
-      else if (fail === 0) toast.success(`${ok} documento${ok !== 1 ? "s" : ""} verificado${ok !== 1 ? "s" : ""} y aprobado${ok !== 1 ? "s" : ""}`);
-      else toast.warning(`${ok} aprobado${ok !== 1 ? "s" : ""}, ${fail} con problemas — revisa el detalle en cada documento`);
-      router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error al verificar documentos");
-    } finally {
-      setVerifyingAll(false);
-    }
+  function handleVerifyAll() {
+    setBulkDocs(
+      enriched
+        .filter((d) => d.uploaded?.status === "PENDING" && isAutoVerifiable(d.documentType.name))
+        .map((d) => ({ documentId: d.uploaded!.id, name: d.documentType.name }))
+    );
   }
+
 
   function approve(id: string) { startTx(async () => { await updateDocumentStatus(id, "APPROVED"); toast.success("Aprobado"); }); }
   function reject(id: string)  { startTx(async () => { await updateDocumentStatus(id, "REJECTED"); toast.error("Rechazado"); }); }
@@ -668,11 +660,16 @@ function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, 
 
       {/* Validación masiva — verifica todos los pendientes de una vez */}
       {isCurrentStage && pendingAutoCount > 0 && (
-        <Button onClick={handleVerifyAll} disabled={verifyingAll} variant="outline" className="w-full h-10 gap-2 font-semibold border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800">
-          {verifyingAll
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Verificando {pendingAutoCount} documento{pendingAutoCount !== 1 ? "s" : ""} con IA…</>
-            : <><Sparkles className="w-4 h-4" /> Validar todos los documentos pendientes ({pendingAutoCount})</>}
+        <Button onClick={handleVerifyAll} variant="outline" className="w-full h-10 gap-2 font-semibold border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800">
+          <Sparkles className="w-4 h-4" /> Validar todos los documentos pendientes ({pendingAutoCount})
         </Button>
+      )}
+
+      {bulkDocs && (
+        <BulkVerifyOverlay
+          docs={bulkDocs}
+          onClose={() => { setBulkDocs(null); router.refresh(); }}
+        />
       )}
 
       {/* Doc list */}

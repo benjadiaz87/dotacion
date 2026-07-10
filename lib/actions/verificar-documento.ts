@@ -462,48 +462,42 @@ const kindOf = (name: string): "carnet" | "hoja_vida" | "antecedentes" | "licenc
   return null;
 };
 
-export async function verifyAllWorkerDocuments(workerId: string): Promise<BulkVerifyItem[]> {
+export async function verifyOneDocument(documentId: string): Promise<BulkVerifyItem> {
   await assertCanWrite();
 
-  const docs = await db.workerDocument.findMany({
-    where: { workerId, status: "PENDING" },
+  const doc = await db.workerDocument.findUnique({
+    where: { id: documentId },
     include: { documentType: { select: { name: true } } },
   });
+  if (!doc) throw new Error("Documento no encontrado");
 
-  const results: BulkVerifyItem[] = [];
-  for (const doc of docs) {
-    const kind = kindOf(doc.documentType.name);
-    if (!kind) continue;
-    const base = { documentId: doc.id, documentTypeName: doc.documentType.name };
-    try {
-      if (kind === "carnet") {
-        const data = await extractCarnetFromImage(doc.id);
-        if (!data.rut || !data.documentNumber) {
-          results.push({ ...base, valid: false, message: "No se pudo leer RUT o número de serie" });
-        } else {
-          const r = await verifyCarnetInRC(doc.id, data.rut, data.documentNumber);
-          results.push({ ...base, valid: r.valid, message: r.message });
-        }
-      } else if (kind === "antecedentes" || kind === "hoja_vida") {
-        const data = kind === "antecedentes"
-          ? await extractAntecedentesFromPdf(doc.id)
-          : await extractHojaVidaFromPdf(doc.id);
-        if (!data.folio || !data.codigoVerificacion) {
-          results.push({ ...base, valid: false, message: "No se pudo leer folio o código de verificación" });
-        } else {
-          const r = await verifyAntecedentesInRC(doc.id, data.folio, data.codigoVerificacion, data.rut);
-          results.push({ ...base, valid: r.valid, message: r.message });
-        }
-      } else {
-        const r = await validateLicenciaDoc(doc.id);
-        results.push({ ...base, valid: r.valid, message: r.message });
-      }
-    } catch (e) {
-      results.push({ ...base, valid: false, message: e instanceof Error ? e.message : "Error inesperado" });
+  const base = { documentId: doc.id, documentTypeName: doc.documentType.name };
+  const kind = kindOf(doc.documentType.name);
+  if (!kind) return { ...base, valid: false, message: "Tipo sin verificación automática" };
+
+  try {
+    if (kind === "carnet") {
+      const data = await extractCarnetFromImage(doc.id);
+      if (!data.rut || !data.documentNumber) return { ...base, valid: false, message: "No se pudo leer RUT o número de serie" };
+      const r = await verifyCarnetInRC(doc.id, data.rut, data.documentNumber);
+      return { ...base, valid: r.valid, message: r.message };
     }
+    if (kind === "antecedentes" || kind === "hoja_vida") {
+      const data = kind === "antecedentes"
+        ? await extractAntecedentesFromPdf(doc.id)
+        : await extractHojaVidaFromPdf(doc.id);
+      if (!data.folio || !data.codigoVerificacion) return { ...base, valid: false, message: "No se pudo leer folio o código de verificación" };
+      const r = await verifyAntecedentesInRC(doc.id, data.folio, data.codigoVerificacion, data.rut);
+      return { ...base, valid: r.valid, message: r.message };
+    }
+    const r = await validateLicenciaDoc(doc.id);
+    return { ...base, valid: r.valid, message: r.message };
+  } catch (e) {
+    const raw = e instanceof Error ? e.message : "Error inesperado";
+    const message = raw.includes("ENOENT") ? "No se encontró el archivo del documento — vuelve a subirlo" : raw;
+    return { ...base, valid: false, message };
+  } finally {
+    revalidatePath("/dashboard/trabajadores");
+    revalidatePath("/dashboard/empleados");
   }
-
-  revalidatePath("/dashboard/trabajadores");
-  revalidatePath("/dashboard/empleados");
-  return results;
 }
