@@ -4,6 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer,
+  Tooltip as ChartTooltip, XAxis, YAxis,
+} from "recharts";
 import { toast } from "sonner";
 import { CountUp, Stagger, StaggerItem } from "@/components/motion-primitives";
 import { assignWorkerToWeeks } from "@/lib/actions/workers";
@@ -34,6 +38,7 @@ export function TorreControl({
 }) {
   const router = useRouter();
   const [sel, setSel] = useState<CellSel>(null);
+  const [weekFilter, setWeekFilter] = useState<number | null>(null); // índice de semana filtrada desde el gráfico
   const [assigning, startAssign] = useTransition();
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
 
@@ -41,6 +46,25 @@ export function TorreControl({
   const currentIdx = Math.max(
     weeksData.findIndex((w) => now >= new Date(w.startDate).getTime() && now <= new Date(w.endDate).getTime()),
     0
+  );
+
+  // Datos del gráfico: curva requerida vs asignación (pasada y futura)
+  const chartData = useMemo(
+    () =>
+      weeksData.map((w, i) => ({
+        idx: i,
+        semana: `S${w.weekNumber}`,
+        Requeridos: w.cargosTotales,
+        Asignados: w.totalWorkers,
+        Habilitados: w.totalHabilitados,
+      })),
+    [weeksData]
+  );
+
+  // Semanas visibles en la matriz (filtradas por el gráfico si corresponde)
+  const visibleWeeks = useMemo(
+    () => (weekFilter === null ? weeksData.map((w, i) => ({ w, i })) : [{ w: weeksData[weekFilter], i: weekFilter }]),
+    [weeksData, weekFilter]
   );
 
   // Cargos únicos presentes en cualquier semana (filas)
@@ -151,6 +175,76 @@ export function TorreControl({
         ))}
       </Stagger>
 
+      {/* Curva de dotación vs asignación */}
+      <div className="bg-background rounded-2xl border shadow-sm p-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-bold text-foreground">Curva de dotación vs asignación</p>
+          <div className="flex items-center gap-3">
+            {weekFilter !== null && (
+              <button
+                onClick={() => setWeekFilter(null)}
+                className="flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 rounded-full px-2.5 py-1 hover:bg-primary/15 transition-colors"
+              >
+                Filtrando S{weeksData[weekFilter].weekNumber} <X className="w-3 h-3" />
+              </button>
+            )}
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded bg-violet-500 inline-block" /> Requeridos</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded bg-amber-500 inline-block" /> Asignados</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded bg-emerald-500 inline-block" /> Habilitados</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground mb-2">clic en un punto para filtrar la matriz por esa semana</p>
+        <div className="h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartData}
+              margin={{ top: 8, right: 12, left: -18, bottom: 0 }}
+              onClick={(e) => {
+                const idx = e?.activeTooltipIndex;
+                if (typeof idx === "number") setWeekFilter((f) => (f === idx ? null : idx));
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis
+                dataKey="semana"
+                tick={({ x, y, payload, index }) => (
+                  <text
+                    x={x} y={Number(y) + 12} textAnchor="middle"
+                    className="cursor-pointer"
+                    fontSize={10}
+                    fontWeight={index === weekFilter || index === currentIdx ? 800 : 500}
+                    fill={index === weekFilter ? "var(--primary)" : index === currentIdx ? "var(--primary)" : "var(--muted-foreground)"}
+                    onClick={() => setWeekFilter((f) => (f === index ? null : index))}
+                  >
+                    {payload.value}
+                  </text>
+                )}
+                axisLine={false} tickLine={false}
+              />
+              <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <ChartTooltip
+                contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12, background: "var(--background)" }}
+                labelFormatter={(l) => `Semana ${String(l).replace("S", "")}`}
+              />
+              <ReferenceLine
+                x={chartData[currentIdx]?.semana}
+                stroke="var(--primary)" strokeDasharray="4 4"
+                label={{ value: "hoy", position: "top", fontSize: 9, fill: "var(--primary)" }}
+              />
+              {weekFilter !== null && (
+                <ReferenceLine x={chartData[weekFilter]?.semana} stroke="var(--primary)" strokeOpacity={0.35} strokeWidth={24} />
+              )}
+              <Line type="monotone" dataKey="Requeridos" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 0, fill: "#8b5cf6" }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="Asignados" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: "#f59e0b" }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="Habilitados" stroke="#10b981" strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: "#10b981" }} activeDot={{ r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Semáforo de semanas */}
       <div className="bg-background rounded-2xl border shadow-sm p-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
@@ -163,17 +257,23 @@ export function TorreControl({
             const isCurrent = i === currentIdx;
             const isPast = i < currentIdx;
             return (
-              <div key={w.weekNumber} className={`flex flex-col items-center gap-1 min-w-11 ${isPast ? "opacity-35" : ""}`}>
-                <span className={`text-[9px] font-bold ${isCurrent ? "text-primary" : "text-muted-foreground"}`}>
+              <button
+                key={w.weekNumber}
+                onClick={() => setWeekFilter((f) => (f === i ? null : i))}
+                className={`flex flex-col items-center gap-1 min-w-11 ${isPast ? "opacity-35" : ""}`}
+              >
+                <span className={`text-[9px] font-bold ${isCurrent || weekFilter === i ? "text-primary" : "text-muted-foreground"}`}>
                   S{w.weekNumber}
                 </span>
                 <div
-                  className={`w-full h-8 rounded-md ${col.bg} flex items-center justify-center relative ${isCurrent ? "ring-2 ring-primary ring-offset-1" : ""}`}
+                  className={`w-full h-8 rounded-md ${col.bg} flex items-center justify-center relative transition-all hover:brightness-110 ${
+                    isCurrent ? "ring-2 ring-primary ring-offset-1" : ""
+                  } ${weekFilter === i ? "ring-2 ring-primary ring-offset-2" : ""}`}
                   title={`Semana ${w.weekNumber}: ${pct}% cubierta con habilitados`}
                 >
                   <span className="text-[9px] font-black text-white">{pct}%</span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -183,7 +283,12 @@ export function TorreControl({
         {/* Matriz cargo × semana */}
         <div className="xl:col-span-2 bg-background rounded-2xl border shadow-sm p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-bold text-foreground">Déficit por cargo y semana</p>
+            <p className="text-sm font-bold text-foreground">
+              Déficit por cargo y semana
+              {weekFilter !== null && (
+                <span className="text-primary font-black"> — S{weeksData[weekFilter].weekNumber}</span>
+              )}
+            </p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">habilitados / requeridos — clic en celda roja para cubrir</p>
           </div>
           <div className="overflow-x-auto">
@@ -191,7 +296,7 @@ export function TorreControl({
               <thead>
                 <tr>
                   <th className="text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-2 sticky left-0 bg-background z-10 min-w-36">Cargo</th>
-                  {weeksData.map((w, i) => (
+                  {visibleWeeks.map(({ w, i }) => (
                     <th key={w.weekNumber} className={`text-[9px] font-bold px-1 min-w-11 ${i === currentIdx ? "text-primary" : i < currentIdx ? "text-muted-foreground/40" : "text-muted-foreground"}`}>
                       S{w.weekNumber}
                     </th>
@@ -207,7 +312,7 @@ export function TorreControl({
                         <span className="text-xs font-semibold text-foreground truncate max-w-32">{c.roleName}</span>
                       </div>
                     </td>
-                    {weeksData.map((w, i) => {
+                    {visibleWeeks.map(({ w, i }) => {
                       const cell = cellData(c.roleId, w);
                       const isPast = i < currentIdx;
                       if (!cell) {
