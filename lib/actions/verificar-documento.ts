@@ -48,6 +48,42 @@ function rutMismatchMessage(rutDocumento: string, rutTrabajador: string): string
   return `El RUT del documento (${rutDocumento}) no coincide con el RUT del trabajador (${rutTrabajador})`;
 }
 
+// Parsea la fecha de vencimiento que la IA lee del documento.
+// Acepta: ISO (2027-03-12), dd/mm/yyyy, dd-mm-yyyy, y "12 MAR 2027" (carnets chilenos).
+const MESES_ES: Record<string, number> = {
+  ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5,
+  jul: 6, ago: 7, sep: 8, sept: 8, oct: 9, nov: 10, dic: 11,
+};
+function parseFechaVencimiento(raw: string | null | undefined): Date | null {
+  if (!raw) return null;
+  const t = raw.trim();
+
+  // ISO: 2027-03-12
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // dd/mm/yyyy o dd-mm-yyyy
+  m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m) {
+    const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "12 MAR 2027" / "12 de marzo de 2027"
+  m = t.toLowerCase().match(/(\d{1,2})\s*(?:de\s+)?([a-záé]+)\.?\s*(?:de\s+)?(\d{4})/);
+  if (m) {
+    const mes = MESES_ES[m[2].slice(0, 4)] ?? MESES_ES[m[2].slice(0, 3)];
+    if (mes !== undefined) {
+      const d = new Date(Date.UTC(+m[3], mes, +m[1]));
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+  return null;
+}
+
 // Persiste el motivo del fallo (o lo limpia si pasó) para mostrarlo en el pipeline
 async function saveVerifyNote(workerDocumentId: string, valid: boolean, message: string) {
   await db.workerDocument.update({
@@ -96,15 +132,18 @@ export async function validateLicenciaDoc(
   }
   await saveVerifyNote(workerDocumentId, result.valid, result.message);
 
-  // Guarda clase + vigencia como documentNumber para mostrarla en el pipeline
-  if (result.data?.clases) {
+  // Guarda clase + vigencia como documentNumber, y el vencimiento efectivo
+  // (con extensión legal +1 año si aplica) en expiresAt para las alertas
+  if (result.data?.clases || result.fechaVencimientoExtendida || result.fechaVencimientoReal) {
     const vigencia = result.fechaVencimientoExtendida ?? result.fechaVencimientoReal;
+    const expiresAt = parseFechaVencimiento(vigencia);
     await db.workerDocument.update({
       where: { id: workerDocumentId },
       data: {
-        documentNumber: vigencia
-          ? `${result.data.clases} · vigente hasta ${vigencia}`
-          : result.data.clases,
+        ...(result.data?.clases
+          ? { documentNumber: vigencia ? `${result.data.clases} · vigente hasta ${vigencia}` : result.data.clases }
+          : {}),
+        ...(expiresAt ? { expiresAt } : {}),
       },
     });
   }
@@ -270,11 +309,15 @@ export async function extractCarnetFromImage(
 
   const { data }: { ok: boolean; data: CarnetExtracted } = await res.json();
 
-  // Persist documentNumber for later manual verification if needed
-  if (data.documentNumber) {
+  // Persistir N° de serie y fecha de vencimiento leída por la IA
+  const expiresAt = parseFechaVencimiento(data.expiryDate);
+  if (data.documentNumber || expiresAt) {
     await db.workerDocument.update({
       where: { id: workerDocumentId },
-      data: { documentNumber: data.documentNumber },
+      data: {
+        ...(data.documentNumber ? { documentNumber: data.documentNumber } : {}),
+        ...(expiresAt ? { expiresAt } : {}),
+      },
     });
   }
 
