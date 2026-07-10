@@ -31,13 +31,13 @@ interface Props {
 }
 
 const TABS = [
-  { key: "torre" as const, label: "Torre de Control", icon: Radar },
   { key: "dotacion" as const, label: "Dotación", icon: Users },
   { key: "seguimiento" as const, label: "Seguimiento", icon: ListChecks },
+  { key: "torre" as const, label: "Torre de Control", icon: Radar },
 ];
 
 export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
-  const [view, setView] = useState<"torre" | "dotacion" | "seguimiento">("torre");
+  const [view, setView] = useState<"dotacion" | "seguimiento" | "torre">("dotacion");
 
   return (
     <div>
