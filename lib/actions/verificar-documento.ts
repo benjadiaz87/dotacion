@@ -273,6 +273,55 @@ export async function verifyAntecedentesInRC(
   return result;
 }
 
+// ─── Hoja de Vida del Conductor ───────────────────────────────────────────────
+// Mismo esquema de verificación que antecedentes: folio + código contra el RC.
+
+export type HojaVidaExtracted = {
+  folio: string | null;
+  codigoVerificacion: string | null;
+  rut: string | null;
+  fullName: string | null;
+  fechaEmision: string | null;
+  licencias: string | null;
+  sinAnotaciones: boolean | null;
+  anotacionesDetalle: string | null;
+};
+
+export async function extractHojaVidaFromPdf(
+  workerDocumentId: string,
+): Promise<HojaVidaExtracted> {
+  const doc = await db.workerDocument.findUnique({ where: { id: workerDocumentId } });
+  if (!doc) throw new Error("Documento no encontrado");
+  await assertCanUploadFor(doc.workerId);
+
+  const filePath = path.join(process.cwd(), "public", doc.fileUrl);
+  const buffer = await readFile(filePath);
+  const pdfBase64 = buffer.toString("base64");
+
+  const res = await fetch(`${VERIFICADOR_URL}/extract/hoja-vida`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pdf: pdfBase64 }),
+  });
+
+  if (!res.ok) throw new Error(`Error extrayendo datos: ${await res.text()}`);
+
+  const { data }: { ok: boolean; data: HojaVidaExtracted } = await res.json();
+
+  // Guarda folio, fecha de emisión y el payload completo leído por la IA
+  const issuedAt = parseFechaVencimiento(data.fechaEmision);
+  await db.workerDocument.update({
+    where: { id: workerDocumentId },
+    data: {
+      ...(data.folio ? { documentNumber: data.folio } : {}),
+      ...(issuedAt ? { issuedAt } : {}),
+      extractedData: JSON.stringify(data),
+    },
+  });
+
+  return data;
+}
+
 export type CarnetExtracted = {
   rut: string | null;
   fullName: string | null;

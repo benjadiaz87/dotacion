@@ -7,6 +7,7 @@ import { uploadWorkerDocument } from "@/lib/actions/workers";
 import {
   extractCarnetFromImage, verifyCarnetInRC, type CarnetExtracted, type VerificationResult,
   extractAntecedentesFromPdf, verifyAntecedentesInRC, type AntecedentesExtracted, type AntecedentesVerificationResult,
+  extractHojaVidaFromPdf, type HojaVidaExtracted,
   validateLicenciaDoc, type LicenciaValidationResult, type LicenciaExtracted,
 } from "@/lib/actions/verificar-documento";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ interface Props {
   isCarnet?: boolean;
   isAntecedentes?: boolean;
   isLicencia?: boolean;
+  isHojaVida?: boolean;
 }
 
 type Phase =
@@ -54,6 +56,12 @@ const PHASE_MESSAGE_ANTECEDENTES: Partial<Record<Phase, { title: string; subtitl
   uploading:  { title: "Subiendo certificado…",         subtitle: "Guardando el PDF en el servidor" },
   extracting: { title: "IA leyendo el certificado…",    subtitle: "Claude extrae folio y código de verificación" },
   verifying:  { title: "Consultando Registro Civil…",   subtitle: "Verificando autenticidad del certificado en el SRCeI" },
+};
+
+const PHASE_MESSAGE_HOJA_VIDA: Partial<Record<Phase, { title: string; subtitle: string }>> = {
+  uploading: { title: "Subiendo hoja de vida…", subtitle: "Guardando el PDF de forma segura" },
+  extracting: { title: "Leyendo el certificado con IA…", subtitle: "Extrayendo folio, código de verificación y anotaciones" },
+  verifying: { title: "Verificando en el Registro Civil…", subtitle: "Contrastando folio y código de verificación" },
 };
 
 const PHASE_MESSAGE_LICENCIA: Partial<Record<Phase, { title: string; subtitle: string }>> = {
@@ -244,7 +252,7 @@ const PROCESS_STEPS = (rut: string, serie: string, valid: boolean) => [
   },
 ];
 
-export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia }: Props) {
+export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia, isHojaVida }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
@@ -256,7 +264,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const [verificationLic, setVerificationLic] = useState<LicenciaValidationResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const phaseMsg = isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
+  const phaseMsg = isHojaVida ? PHASE_MESSAGE_HOJA_VIDA[phase] : isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
   const isProcessing = ["uploading", "extracting", "verifying"].includes(phase);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -286,6 +294,37 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             toast.success("Licencia vigente — aprobada automáticamente");
           } else {
             toast.error(`Licencia: ${result.message}`);
+          }
+
+          formRef.current?.reset();
+          setFile(null);
+          setTimeout(() => router.refresh(), 3000);
+          return;
+        }
+
+        // ── Hoja de Vida del Conductor ───────────────────────────────────────
+        // Mismo circuito que antecedentes: folio + código contra el Registro Civil
+        if (isHojaVida && file && /\.pdf$/i.test(file.name)) {
+          setPhase("extracting");
+          const hv: HojaVidaExtracted = await extractHojaVidaFromPdf(documentId);
+          setExtractedAnt({ folio: hv.folio, codigoVerificacion: hv.codigoVerificacion, rut: hv.rut, fullName: hv.fullName, fechaEmision: hv.fechaEmision, sinAntecedentes: hv.sinAnotaciones, antecedentesDetalle: hv.anotacionesDetalle, tipoFines: null });
+          setPhase("extracted");
+
+          if (!hv.folio || !hv.codigoVerificacion) {
+            toast.error("No se encontraron folio o código de verificación en el PDF");
+            setPhase("done_fail");
+            return;
+          }
+
+          setPhase("verifying");
+          const result = await verifyAntecedentesInRC(documentId, hv.folio, hv.codigoVerificacion, hv.rut);
+          setVerificationAnt(result);
+          setPhase(result.valid ? "done_ok" : "done_fail");
+
+          if (result.valid) {
+            toast.success("Hoja de vida verificada y aprobada automáticamente");
+          } else {
+            toast.error(`Registro Civil: ${result.message}`);
           }
 
           formRef.current?.reset();
@@ -385,23 +424,23 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             </div>
             <div className="text-center">
               <p className={`text-sm font-semibold ${file ? "text-primary" : "text-foreground"}`}>
-                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : isAntecedentes ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona la licencia de conducir" : "Selecciona el documento")}
+                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : (isAntecedentes || isHojaVida) ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona la licencia de conducir" : "Selecciona el documento")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isCarnet ? "JPG o PNG — frente del carnet" : isAntecedentes ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — un solo archivo" : "PDF, JPG o PNG"}
+                {isCarnet ? "JPG o PNG — frente del carnet" : (isAntecedentes || isHojaVida) ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — un solo archivo" : "PDF, JPG o PNG"}
               </p>
             </div>
             <input
               type="file"
               name="file"
-              accept={isCarnet ? ".jpg,.jpeg,.png" : isAntecedentes ? ".pdf" : isLicencia ? ".jpg,.jpeg,.png,.pdf" : ".pdf,.jpg,.jpeg,.png"}
+              accept={isCarnet ? ".jpg,.jpeg,.png" : (isAntecedentes || isHojaVida) ? ".pdf" : isLicencia ? ".jpg,.jpeg,.png,.pdf" : ".pdf,.jpg,.jpeg,.png"}
               className="hidden"
               onChange={handleFileChange}
               required
             />
           </label>
 
-          {(isCarnet || isAntecedentes || isLicencia) && (
+          {(isCarnet || isAntecedentes || isLicencia || isHojaVida) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
               {isLicencia
@@ -411,7 +450,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           )}
 
           <Button type="submit" disabled={!file} className="w-full gap-2 h-10 font-semibold">
-            {(isCarnet || isAntecedentes || isLicencia) ? (
+            {(isCarnet || isAntecedentes || isLicencia || isHojaVida) ? (
               <><ScanLine className="w-4 h-4" /> Subir y verificar automáticamente</>
             ) : "Subir documento"}
           </Button>
@@ -740,7 +779,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           onClick={() => { setPhase("idle"); setExtracted(null); setExtractedAnt(null); setVerification(null); setVerificationAnt(null); setVerificationLic(null); }}
           className="w-full"
         >
-          {isAntecedentes ? "Intentar con otro PDF" : isLicencia ? "Intentar con otro archivo" : "Intentar con otra imagen"}
+          {(isAntecedentes || isHojaVida) ? "Intentar con otro PDF" : isLicencia ? "Intentar con otro archivo" : "Intentar con otra imagen"}
         </Button>
       )}
     </div>

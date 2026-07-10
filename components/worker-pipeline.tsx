@@ -26,7 +26,13 @@ const ANTECEDENTES_KEYWORDS = ["antecedente", "antecedentes"];
 const isAntecedentesType = (name: string) => ANTECEDENTES_KEYWORDS.some((k) => name.toLowerCase().includes(k));
 
 const LICENCIA_KEYWORDS = ["licencia", "conducir", "conducción"];
-const isLicenciaType = (name: string) => LICENCIA_KEYWORDS.some((k) => name.toLowerCase().includes(k));
+const isLicenciaType = (name: string) => LICENCIA_KEYWORDS.some((k) => name.toLowerCase().includes(k)) && !isHojaVidaType(name);
+
+// "Hoja de Vida del Conductor" (certificado RC) — distinto de "Hoja de vida" (CV)
+const isHojaVidaType = (name: string) => {
+  const n = name.toLowerCase();
+  return n.includes("hoja de vida") && n.includes("conductor");
+};
 
 const STAGE_ICONS = [Clipboard, FileText, Hammer, ShieldCheck];
 
@@ -146,6 +152,7 @@ const EXTRACT_LABELS: Record<string, string> = {
   fechaNacimiento: "Nacimiento", fechaVencimiento: "Vencimiento",
   clases: "Clases", restricciones: "Restricciones", numero: "N° licencia",
   fechaVencimientoReal: "Vence (real)", fechaVencimientoExtendida: "Vence (ext. legal)",
+  licencias: "Licencias", sinAnotaciones: "Sin anotaciones",
 };
 
 function ExtractedChips({ raw }: { raw: string | null }) {
@@ -153,8 +160,10 @@ function ExtractedChips({ raw }: { raw: string | null }) {
   let data: Record<string, unknown>;
   try { data = JSON.parse(raw); } catch { return null; }
   const entries = Object.entries(data).filter(([k, v]) => v !== null && v !== "" && EXTRACT_LABELS[k]);
-  const conAntecedentes = data.sinAntecedentes === false;
-  const detalle = typeof data.antecedentesDetalle === "string" ? data.antecedentesDetalle : null;
+  const conAntecedentes = data.sinAntecedentes === false || data.sinAnotaciones === false;
+  const detalle =
+    typeof data.antecedentesDetalle === "string" ? data.antecedentesDetalle :
+    typeof data.anotacionesDetalle === "string" ? data.anotacionesDetalle : null;
   if (entries.length === 0 && !conAntecedentes) return null;
   return (
     <div className="mb-3">
@@ -162,7 +171,8 @@ function ExtractedChips({ raw }: { raw: string | null }) {
       {conAntecedentes && (
         <div className="mb-2 rounded-lg border border-red-300 bg-red-50 p-3">
           <p className="text-xs font-black text-red-800 flex items-center gap-1.5 uppercase tracking-wide">
-            <AlertTriangle className="w-3.5 h-3.5" /> Registra antecedentes
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {data.sinAnotaciones === false ? "Registra anotaciones" : "Registra antecedentes"}
           </p>
           {detalle && (
             <p className="text-[11px] text-red-700 mt-1.5 whitespace-pre-wrap font-medium">{detalle}</p>
@@ -423,7 +433,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
           {isCurrentStage ? (
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (
-              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} isLicencia={isLicenciaType(doc.documentType.name)} />
+              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} isLicencia={isLicenciaType(doc.documentType.name)} isHojaVida={isHojaVidaType(doc.documentType.name)} />
             ) : (
               <DocumentVerifyPanel
                 documentId={doc.uploaded.id}
@@ -434,6 +444,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
                 workerName={worker.fullName}
                 docKind={
                   isCarnetType(doc.documentType.name) ? "carnet" :
+                  isHojaVidaType(doc.documentType.name) ? "hoja_vida" :
                   isAntecedentesType(doc.documentType.name) ? "antecedentes" :
                   isLicenciaType(doc.documentType.name) ? "licencia" : "otro"
                 }
