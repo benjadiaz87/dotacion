@@ -1,13 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    {
-      "name": "dotacion-faenas",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000,
-      "autoPort": false,
-      "serverReadyPattern": "Ready in"
-    }
+    { "name": "dotia", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "-p", "3005"], "port": 3005, "autoPort": false }
   ]
 }

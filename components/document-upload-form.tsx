@@ -517,7 +517,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               ref={fileInputRef}
               type="file"
               name="file"
-              accept={isCarnet ? ".jpg,.jpeg,.png" : (isAntecedentes || isHojaVida) ? ".pdf" : isLicencia ? ".jpg,.jpeg,.png,.pdf" : ".pdf,.jpg,.jpeg,.png"}
+              accept={isCarnet ? "image/jpeg,image/png,.jpg,.jpeg,.png" : (isAntecedentes || isHojaVida) ? "application/pdf,.pdf" : isLicencia ? "image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" : "application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"}
               className="hidden"
               onChange={handleFileChange}
               required

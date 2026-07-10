@@ -7,6 +7,15 @@ import { Check, Clock, FileText, ChevronRight } from "lucide-react";
 
 const CARNET_KEYWORDS = ["cédula", "cedula", "carnet", "identidad"];
 const isCarnetType = (name: string) => CARNET_KEYWORDS.some((k) => name.toLowerCase().includes(k));
+const isHojaVidaType = (name: string) => {
+  const n = name.toLowerCase();
+  return n.includes("hoja de vida") && n.includes("conductor");
+};
+const isAntecedentesType = (name: string) => name.toLowerCase().includes("antecedente");
+const isLicenciaType = (name: string) => {
+  const n = name.toLowerCase();
+  return (n.includes("licencia") || n.includes("conducir")) && !isHojaVidaType(name);
+};
 
 const STATUS_CFG: Record<string, { label: string; icon: React.ReactNode; border: string; bg: string }> = {
   APPROVED: {
@@ -113,6 +122,9 @@ export function WorkerUploadView({
                     workerId={workerId}
                     documentTypeId={req.documentTypeId}
                     isCarnet={isCarnetType(req.documentType.name)}
+                    isAntecedentes={isAntecedentesType(req.documentType.name)}
+                    isLicencia={isLicenciaType(req.documentType.name)}
+                    isHojaVida={isHojaVidaType(req.documentType.name)}
                   />
                 </div>
               )}
