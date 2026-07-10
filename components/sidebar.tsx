@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  Lightbulb,
   FolderKanban,
   KeyRound,
   LayoutDashboard,
@@ -34,6 +35,7 @@ const navItems: { href: string; label: string; icon: React.ElementType; disabled
   { href: "/dashboard/empleados", label: "Empleados", icon: Users },
   { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
   { href: "/dashboard/alertas", label: "Alertas", icon: Bell },
+  { href: "/dashboard/features", label: "Features", icon: Lightbulb },
   { href: "/dashboard/cargos", label: "Cargos", icon: BadgeCheck, superadminOnly: true },
   { href: "/dashboard/acceso", label: "Acceso", icon: KeyRound, superadminOnly: true },
 ];

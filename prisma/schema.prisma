@@ -242,3 +242,21 @@ model CurveChangeLog {
 
   @@map("curve_change_logs")
 }
+
+model FeatureRequest {
+  id          String   @id @default(cuid())
+  titulo      String
+  tipo        String   // FEATURE | MEJORA | BUG
+  area        String   // dashboard | proyectos | pipeline | documentos | alertas | cargos | otra
+  prioridad   String   // ALTA | MEDIA | BAJA
+  problema    String   // qué problema resuelve / por qué importa
+  comportamiento String // comportamiento esperado, paso a paso
+  criterios   String   // criterios de aceptación ("listo cuando…")
+  pantalla    String?  // dónde vive en la app (pantalla / URL)
+  status      String   @default("NUEVA") // NUEVA | EN_DESARROLLO | HECHA | DESCARTADA
+  createdBy   String   // nombre del solicitante
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("feature_requests")
+}
