@@ -118,9 +118,11 @@ export function WorkerUploadView({
 
               {isOpen && needsUpload && (
                 <div className="px-5 pb-5 border-t border-dashed pt-4">
+                  {/* El trabajador solo sube; la verificación la ejecuta el admin */}
                   <DocumentUploadForm
                     workerId={workerId}
                     documentTypeId={req.documentTypeId}
+                    uploadOnly
                     isCarnet={isCarnetType(req.documentType.name)}
                     isAntecedentes={isAntecedentesType(req.documentType.name)}
                     isLicencia={isLicenciaType(req.documentType.name)}

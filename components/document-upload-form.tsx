@@ -23,6 +23,8 @@ interface Props {
   isAntecedentes?: boolean;
   isLicencia?: boolean;
   isHojaVida?: boolean;
+  /** Solo subir, sin verificación automática (portal del trabajador) */
+  uploadOnly?: boolean;
 }
 
 type Phase =
@@ -321,7 +323,7 @@ function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: File) =>
   );
 }
 
-export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia, isHojaVida }: Props) {
+export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia, isHojaVida, uploadOnly }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
@@ -381,6 +383,17 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
       try {
         setPhase("uploading");
         const { documentId } = await uploadWorkerDocument(workerId, documentTypeId, formData);
+
+        if (uploadOnly) {
+          void documentId;
+          toast.success("Documento subido — quedará en revisión");
+          setPhase("idle");
+          formRef.current?.reset();
+          setFile(null);
+          setBackFile(null);
+          router.refresh();
+          return;
+        }
 
         // ── Licencia de conducir ─────────────────────────────────────────────
         if (isLicencia) {
@@ -582,7 +595,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
           {cameraOpen && <CameraCaptureModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
 
-          {(isCarnet || isAntecedentes || isLicencia || isHojaVida) && (
+          {!uploadOnly && (isCarnet || isAntecedentes || isLicencia || isHojaVida) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
               {isLicencia
@@ -592,7 +605,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           )}
 
           <Button type="submit" disabled={!file} className="w-full gap-2 h-10 font-semibold">
-            {(isCarnet || isAntecedentes || isLicencia || isHojaVida) ? (
+            {!uploadOnly && (isCarnet || isAntecedentes || isLicencia || isHojaVida) ? (
               <><ScanLine className="w-4 h-4" /> Subir y verificar automáticamente</>
             ) : "Subir documento"}
           </Button>
