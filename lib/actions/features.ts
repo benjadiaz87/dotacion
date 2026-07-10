@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth";
 import { assertCanWrite } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
 
 export type FeatureRequestItem = {
   id: string;
@@ -16,6 +18,7 @@ export type FeatureRequestItem = {
   comportamiento: string;
   criterios: string;
   pantalla: string | null;
+  images: string | null;
   status: string;
   createdBy: string;
   createdAt: Date;
@@ -36,14 +39,36 @@ const featureSchema = z.object({
   pantalla: z.string().optional(),
 });
 
-export async function createFeatureRequest(data: z.infer<typeof featureSchema>) {
+export async function createFeatureRequest(data: z.infer<typeof featureSchema>, formData?: FormData) {
   await assertCanWrite();
   const session = await auth();
   const parsed = featureSchema.parse(data);
+
+  // Capturas opcionales — se guardan junto a los demás archivos en uploads/
+  const urls: string[] = [];
+  const files = (formData?.getAll("images") ?? []) as File[];
+  if (files.length > 0) {
+    const dir = path.join(process.cwd(), "public", "uploads", "qa");
+    await mkdir(dir, { recursive: true });
+    for (const f of files.slice(0, 6)) {
+      if (!f || f.size === 0 || !f.type.startsWith("image/")) continue;
+      const ext = f.name.split(".").pop() || "png";
+      const name = `qa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await writeFile(path.join(dir, name), Buffer.from(await f.arrayBuffer()));
+      urls.push(`/uploads/qa/${name}`);
+    }
+  }
+
   await db.featureRequest.create({
-    data: { ...parsed, pantalla: parsed.pantalla || null, createdBy: session?.user?.name ?? "desconocido" },
+    data: {
+      ...parsed,
+      pantalla: parsed.pantalla || null,
+      images: urls.length > 0 ? JSON.stringify(urls) : null,
+      createdBy: session?.user?.name ?? "desconocido",
+    },
   });
   revalidatePath("/dashboard/features");
+  revalidatePath("/dashboard/bugs");
   return { ok: true };
 }
 
@@ -51,5 +76,6 @@ export async function updateFeatureStatus(id: string, status: "NUEVA" | "EN_DESA
   await assertCanWrite();
   await db.featureRequest.update({ where: { id }, data: { status } });
   revalidatePath("/dashboard/features");
+  revalidatePath("/dashboard/bugs");
   return { ok: true };
 }

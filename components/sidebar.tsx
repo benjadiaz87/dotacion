@@ -16,6 +16,7 @@ import {
   Search as SearchIcon,
   Settings,
   Users,
+  Bug,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ const navItems: { href: string; label: string; icon: React.ElementType; disabled
   { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
   { href: "/dashboard/alertas", label: "Alertas", icon: Bell },
   { href: "/dashboard/features", label: "Features", icon: Lightbulb },
+  { href: "/dashboard/bugs", label: "Bugs", icon: Bug },
   { href: "/dashboard/cargos", label: "Cargos", icon: BadgeCheck, superadminOnly: true },
   { href: "/dashboard/acceso", label: "Acceso", icon: KeyRound, superadminOnly: true },
 ];

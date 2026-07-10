@@ -253,6 +253,7 @@ model FeatureRequest {
   comportamiento String // comportamiento esperado, paso a paso
   criterios   String   // criterios de aceptación ("listo cuando…")
   pantalla    String?  // dónde vive en la app (pantalla / URL)
+  images      String?  // JSON array de URLs de capturas adjuntas
   status      String   @default("NUEVA") // NUEVA | EN_DESARROLLO | HECHA | DESCARTADA
   createdBy   String   // nombre del solicitante
   createdAt   DateTime @default(now())
