@@ -176,6 +176,7 @@ export type AntecedentesExtracted = {
   fechaEmision: string | null;
   tipoFines: string | null;
   sinAntecedentes: boolean | null;
+  antecedentesDetalle: string | null;
 };
 
 export type AntecedentesVerificationResult = {

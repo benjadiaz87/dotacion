@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Check, ChevronRight, FileText, Trophy, Loader2, AlertTriangle,
-  ShieldCheck, Clipboard, Hammer, Clock,
+  ShieldCheck, Clipboard, Hammer, Clock, Download,
   X, MessageSquare, Phone, Mail, Hash, Briefcase, Flag,
   Link2, Copy, CheckCheck,
 } from "lucide-react";
@@ -153,9 +153,25 @@ function ExtractedChips({ raw }: { raw: string | null }) {
   let data: Record<string, unknown>;
   try { data = JSON.parse(raw); } catch { return null; }
   const entries = Object.entries(data).filter(([k, v]) => v !== null && v !== "" && EXTRACT_LABELS[k]);
-  if (entries.length === 0) return null;
+  const conAntecedentes = data.sinAntecedentes === false;
+  const detalle = typeof data.antecedentesDetalle === "string" ? data.antecedentesDetalle : null;
+  if (entries.length === 0 && !conAntecedentes) return null;
   return (
     <div className="mb-3">
+      {/* Registro de condenas — visible y destacado si existen antecedentes */}
+      {conAntecedentes && (
+        <div className="mb-2 rounded-lg border border-red-300 bg-red-50 p-3">
+          <p className="text-xs font-black text-red-800 flex items-center gap-1.5 uppercase tracking-wide">
+            <AlertTriangle className="w-3.5 h-3.5" /> Registra antecedentes
+          </p>
+          {detalle && (
+            <p className="text-[11px] text-red-700 mt-1.5 whitespace-pre-wrap font-medium">{detalle}</p>
+          )}
+          <p className="text-[10px] text-red-500 mt-1.5">
+            Detalle capturado por la IA desde el certificado — verifica contra el documento original.
+          </p>
+        </div>
+      )}
       <p className="text-[9px] font-bold uppercase tracking-widest text-violet-500 mb-1.5">
         Datos capturados por la IA
       </p>
@@ -170,6 +186,114 @@ function ExtractedChips({ raw }: { raw: string | null }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ─── Miniatura del documento con lightbox y descarga ──────────────────────────
+function DocThumbnail({ fileUrl, fileName }: { fileUrl: string; fileName: string }) {
+  const [open, setOpen] = useState(false);
+  const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(fileUrl);
+  const isPdf = /\.pdf$/i.test(fileUrl);
+
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-3">
+        {/* Miniatura clickeable */}
+        <button
+          onClick={() => setOpen(true)}
+          className="relative w-20 h-24 rounded-lg border bg-muted/30 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary/40 transition-all group"
+          title="Clic para ampliar"
+        >
+          {isImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={fileUrl} alt={fileName} className="w-full h-full object-cover" />
+          ) : isPdf ? (
+            <iframe src={`${fileUrl}#toolbar=0&view=FitH`} className="w-[200%] h-[200%] scale-50 origin-top-left pointer-events-none" title={fileName} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <FileText className="w-6 h-6 text-muted-foreground/40" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </button>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-foreground truncate max-w-48">{fileName}</p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <button
+              onClick={() => setOpen(true)}
+              className="text-[11px] font-semibold text-primary hover:underline"
+            >
+              Ver documento
+            </button>
+            <span className="text-muted-foreground/30">·</span>
+            <a
+              href={fileUrl}
+              download={fileName}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Download className="w-3 h-3" /> Descargar
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-6"
+            style={{ background: "rgba(10, 12, 24, 0.8)", backdropFilter: "blur(6px)" }}
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.97, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="relative bg-background rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full max-h-[88vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
+                <p className="text-sm font-bold text-foreground truncate">{fileName}</p>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={fileUrl}
+                    download={fileName}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Descargar
+                  </a>
+                  <button
+                    onClick={() => setOpen(false)}
+                    aria-label="Cerrar"
+                    className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto bg-muted/30 flex items-center justify-center min-h-0">
+                {isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={fileUrl} alt={fileName} className="max-w-full max-h-[78vh] object-contain" />
+                ) : isPdf ? (
+                  <iframe src={fileUrl} className="w-full h-[78vh]" title={fileName} />
+                ) : (
+                  <div className="py-20 text-center">
+                    <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Vista previa no disponible — descarga el archivo.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -294,6 +418,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
       {/* Detalle del documento */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-dashed mt-1 pt-3">
+          {doc.uploaded && <DocThumbnail fileUrl={doc.uploaded.fileUrl} fileName={doc.uploaded.fileName} />}
           {doc.uploaded && <ExtractedChips raw={doc.uploaded.extractedData} />}
           {isCurrentStage ? (
             // Etapa actual: upload o verify interactivo
