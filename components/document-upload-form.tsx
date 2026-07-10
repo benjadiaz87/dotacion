@@ -325,6 +325,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [extracted, setExtracted] = useState<CarnetExtracted | null>(null);
   const [extractedAnt, setExtractedAnt] = useState<AntecedentesExtracted | null>(null);
@@ -366,6 +367,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files?.[0] ?? null);
+    if (!e.target.files?.length) setBackFile(null);
     setPhase("idle");
     setExtracted(null);
     setExtractedAnt(null);
@@ -521,10 +523,10 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             </div>
             <div className="text-center">
               <p className={`text-sm font-semibold ${file ? "text-primary" : "text-foreground"}`}>
-                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : (isAntecedentes || isHojaVida) ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona la licencia de conducir" : "Selecciona el documento")}
+                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : (isAntecedentes || isHojaVida) ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona el anverso de la licencia" : "Selecciona el documento")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isCarnet ? "JPG o PNG — frente del carnet" : (isAntecedentes || isHojaVida) ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — un solo archivo" : "PDF, JPG o PNG"}
+                {isCarnet ? "JPG o PNG — frente del carnet" : (isAntecedentes || isHojaVida) ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — frente de la licencia" : "PDF, JPG o PNG"}
               </p>
             </div>
             <input
@@ -537,6 +539,27 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               required
             />
           </label>
+
+          {isLicencia && (
+            <label className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+              backFile ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/40"
+            }`}>
+              <ScanLine className={`w-4 h-4 flex-shrink-0 ${backFile ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs font-semibold truncate ${backFile ? "text-primary" : "text-foreground"}`}>
+                  {backFile?.name ?? "Reverso de la licencia (opcional)"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Mejora la lectura de clases y restricciones</p>
+              </div>
+              <input
+                type="file"
+                name="fileBack"
+                accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(e) => setBackFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          )}
 
           {acceptsImages && (
             <>

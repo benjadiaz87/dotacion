@@ -113,6 +113,17 @@ export async function validateLicenciaDoc(
     workerRut: doc.worker.rut,
   };
 
+  // Reverso opcional guardado por uploadWorkerDocument
+  let reversoUrl: string | null = null;
+  try {
+    reversoUrl = doc.extractedData ? (JSON.parse(doc.extractedData).reversoUrl ?? null) : null;
+  } catch { /* extractedData de una verificación anterior sin reverso */ }
+  if (reversoUrl) {
+    const backBuffer = await readFile(path.join(process.cwd(), "public", reversoUrl));
+    body.back = backBuffer.toString("base64");
+    body.backMime = getMime(reversoUrl);
+  }
+
   const res = await fetch(`${VERIFICADOR_URL}/validate/licencia`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -148,6 +159,7 @@ export async function validateLicenciaDoc(
           ...result.data,
           fechaVencimientoReal: result.fechaVencimientoReal,
           fechaVencimientoExtendida: result.fechaVencimientoExtendida,
+          ...(reversoUrl ? { reversoUrl } : {}),
         }),
       },
     });

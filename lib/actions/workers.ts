@@ -250,6 +250,17 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
+  // Reverso opcional (p. ej. licencia de conducir): se guarda junto al anverso
+  // y su URL viaja en extractedData para que la verificación lo use
+  let backUrl: string | null = null;
+  const back = formData.get("fileBack") as File | null;
+  if (back && back.size > 0) {
+    const backExt = back.name.split(".").pop() || "bin";
+    const backName = `${workerId}-${documentTypeId}-${Date.now()}-reverso.${backExt}`;
+    await writeFile(path.join(uploadsDir, backName), Buffer.from(await back.arrayBuffer()));
+    backUrl = `/uploads/${backName}`;
+  }
+
   const doc = await db.workerDocument.upsert({
     where: { workerId_documentTypeId: { workerId, documentTypeId } },
     update: {
@@ -258,6 +269,7 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
       documentNumber,
       status: "PENDING",
       uploadedAt: new Date(),
+      extractedData: backUrl ? JSON.stringify({ reversoUrl: backUrl }) : null,
     },
     create: {
       workerId,
@@ -266,6 +278,7 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
       fileName: file.name,
       documentNumber,
       status: "PENDING",
+      extractedData: backUrl ? JSON.stringify({ reversoUrl: backUrl }) : undefined,
     },
   });
 
