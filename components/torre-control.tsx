@@ -14,8 +14,9 @@ import { assignWorkerToWeeks } from "@/lib/actions/workers";
 import type { WeekDotacion } from "@/lib/actions/workers";
 import type { DisponibleWorker } from "@/lib/actions/seguimiento";
 import {
-  AlertTriangle, ArrowRight, Check, Loader2, LogOut, Radar, Trophy, UserPlus, X,
+  AlertTriangle, ArrowRight, Check, FileSpreadsheet, Loader2, LogOut, Radar, Trophy, UserPlus, X,
 } from "lucide-react";
+import { exportProyecto } from "@/lib/export-excel";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,10 +29,12 @@ function coverageColor(pct: number) {
 type CellSel = { weekIdx: number; roleId: string; roleName: string; deficit: number } | null;
 
 export function TorreControl({
+  projectName,
   weeksData,
   disponiblesHabilitados,
   canWrite,
 }: {
+  projectName: string;
   weeksData: WeekDotacion[];
   disponiblesHabilitados: DisponibleWorker[];
   canWrite: boolean;
@@ -180,6 +183,13 @@ export function TorreControl({
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-bold text-foreground">Curva de dotación vs asignación</p>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => exportProyecto(projectName, weeksData, disponiblesHabilitados)}
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border bg-background text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
+              title="Exporta cobertura, déficit, asignaciones y banco a Excel"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+            </button>
             {weekFilter !== null && (
               <button
                 onClick={() => setWeekFilter(null)}

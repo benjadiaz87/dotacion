@@ -21,6 +21,7 @@ type WeekPlan = {
 
 interface Props {
   canWrite?: boolean;
+  projectName: string;
   seguimiento: SeguimientoData;
   weeksData: WeekDotacion[];
   criticalForecast: CriticalForecast;
@@ -36,7 +37,7 @@ const TABS = [
   { key: "torre" as const, label: "Torre de Control", icon: Radar },
 ];
 
-export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
+export function ProjectViewTabs({ canWrite = true, projectName, seguimiento, weeksData, criticalForecast, projectProgress, weekPlans, startDate, roles }: Props) {
   const [view, setView] = useState<"dotacion" | "seguimiento" | "torre">("dotacion");
 
   return (
@@ -77,6 +78,7 @@ export function ProjectViewTabs({ canWrite = true, seguimiento, weeksData, criti
         >
           {view === "torre" ? (
             <TorreControl
+              projectName={projectName}
               weeksData={weeksData}
               disponiblesHabilitados={seguimiento.disponibles[seguimiento.stages.length + 1] ?? []}
               canWrite={canWrite}

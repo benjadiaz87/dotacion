@@ -58,6 +58,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <ProjectViewTabs
           canWrite={canWrite}
+          projectName={project.name}
           seguimiento={seguimiento}
           weeksData={weeksData}
           criticalForecast={criticalForecast}

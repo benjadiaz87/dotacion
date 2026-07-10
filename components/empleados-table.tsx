@@ -18,11 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Search, Trash2, Users, X } from "lucide-react";
+import { FileSpreadsheet, Loader2, Search, Trash2, Users, X } from "lucide-react";
 import Link from "next/link";
 import type { WorkerListItem } from "@/lib/actions/workers";
 import { deleteWorker } from "@/lib/actions/workers";
 import { toast } from "sonner";
+import { exportEmpleados } from "@/lib/export-excel";
 
 const semaphoreConfig = {
   green: { dot: "bg-emerald-500", label: "Habilitado", text: "text-emerald-700", bar: "bg-emerald-500" },
@@ -362,9 +363,18 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground mb-3">
-        Mostrando {filtered.length} de {workers.length} trabajador{workers.length !== 1 ? "es" : ""}
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs text-muted-foreground">
+          Mostrando {filtered.length} de {workers.length} trabajador{workers.length !== 1 ? "es" : ""}
+        </p>
+        <button
+          onClick={() => exportEmpleados(filtered)}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border bg-background text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
+          title="Exporta los trabajadores visibles (respeta los filtros aplicados)"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5" /> Exportar Excel
+        </button>
+      </div>
 
       {filtered.length === 0 ? (
         <div className="border border-dashed rounded-xl flex flex-col items-center justify-center py-16 text-center">
