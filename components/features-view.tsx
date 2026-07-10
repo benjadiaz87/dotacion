@@ -35,6 +35,20 @@ const STATUS_CFG: Record<string, { label: string; cls: string }> = {
 };
 
 // ─── Formulario ───────────────────────────────────────────────────────────────
+// Field vive FUERA del form: si se define adentro, cada tecleo re-crea el
+// componente, React remonta los inputs y el autoFocus roba el foco al título.
+const areaCls = "w-full text-sm rounded-lg border bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50";
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-bold text-foreground">{label}</label>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
 function FeatureForm({ onDone }: { onDone: () => void }) {
   const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState<"FEATURE" | "MEJORA" | "BUG">("FEATURE");
@@ -57,16 +71,6 @@ function FeatureForm({ onDone }: { onDone: () => void }) {
       }
     });
   }
-
-  const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
-    <div className="space-y-1">
-      <label className="text-xs font-bold text-foreground">{label}</label>
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-      {children}
-    </div>
-  );
-
-  const areaCls = "w-full text-sm rounded-lg border bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50";
 
   return (
     <div className="card-premium rounded-2xl p-6 space-y-4 mb-6">
