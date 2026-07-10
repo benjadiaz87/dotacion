@@ -161,7 +161,9 @@ function ExtractedChips({ raw }: { raw: string | null }) {
   if (!raw) return null;
   let data: Record<string, unknown>;
   try { data = JSON.parse(raw); } catch { return null; }
-  const entries = Object.entries(data).filter(([k, v]) => v !== null && v !== "" && EXTRACT_LABELS[k]);
+  const entries = Object.entries(data).filter(
+    ([k, v]) => v !== null && v !== "" && EXTRACT_LABELS[k] && k !== "sinAnotaciones" && k !== "sinAntecedentes"
+  );
   const conAntecedentes = data.sinAntecedentes === false || data.sinAnotaciones === false;
   const detalle =
     typeof data.antecedentesDetalle === "string" ? data.antecedentesDetalle :
@@ -174,7 +176,7 @@ function ExtractedChips({ raw }: { raw: string | null }) {
         <div className="mb-2 rounded-lg border border-red-300 bg-red-50 p-3">
           <p className="text-xs font-black text-red-800 flex items-center gap-1.5 uppercase tracking-wide">
             <AlertTriangle className="w-3.5 h-3.5" />
-            {data.sinAnotaciones === false ? "Registra anotaciones" : "Registra antecedentes"}
+            {data.sinAnotaciones === false ? "Registra Anotaciones" : "Registra Antecedentes"}
           </p>
           {detalle && (
             <p className="text-[11px] text-red-700 mt-1.5 whitespace-pre-wrap font-medium">{detalle}</p>
@@ -188,6 +190,26 @@ function ExtractedChips({ raw }: { raw: string | null }) {
         Datos capturados por la IA
       </p>
       <div className="flex flex-wrap gap-1.5">
+        {typeof data.sinAnotaciones === "boolean" && (
+          <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-bold ${
+            data.sinAnotaciones
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-red-300 bg-red-50 text-red-700"
+          }`}>
+            {data.sinAnotaciones ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+            {data.sinAnotaciones ? "Sin anotaciones" : "Registra Anotaciones"}
+          </span>
+        )}
+        {typeof data.sinAntecedentes === "boolean" && (
+          <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-bold ${
+            data.sinAntecedentes
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-red-300 bg-red-50 text-red-700"
+          }`}>
+            {data.sinAntecedentes ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+            {data.sinAntecedentes ? "Sin antecedentes" : "Registra Antecedentes"}
+          </span>
+        )}
         {entries.map(([k, v]) => (
           <span key={k} className="inline-flex items-center gap-1.5 rounded-md border border-violet-100 bg-violet-50/50 px-2 py-1">
             <span className="text-[9px] uppercase tracking-wider font-semibold text-violet-400">{EXTRACT_LABELS[k]}</span>
