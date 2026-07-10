@@ -260,6 +260,11 @@ function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: File) =>
 
   useEffect(() => {
     let cancelled = false;
+    // En contextos no seguros (http en red local) mediaDevices no existe
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("La cámara requiere una conexión segura (HTTPS). Usa el selector de archivos: en el teléfono también permite tomar una foto.");
+      return;
+    }
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "environment" }, audio: false })
       .then((stream) => {
