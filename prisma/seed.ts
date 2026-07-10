@@ -20,7 +20,7 @@ const STAGE_DOCS: { stageName: string; docs: { name: string; required: boolean }
       { name: "Licencia de conducir vigente",  required: false },
       { name: "Credencial SNS",                required: true },
       { name: "Credencial Sernageomin",         required: true },
-      { name: "Hoja de vida",                  required: true },
+      { name: "Hoja de Vida del Conductor",    required: true },
       { name: "Título profesional/Técnico",    required: true },
     ],
   },
@@ -81,14 +81,14 @@ const WORKERS_DEMO = [
   { rut: "23.890.127-3", fullName: "Tomás Pereira Cáceres",      role: "Operador de Bulldozer",     stage: 1, docsApproved: [] },
 
   // Etapa 2 — Evaluación Previa (5)
-  { rut: "12.901.238-5", fullName: "Andrés Salinas Vergara",     role: "Operador de Bulldozer",     stage: 2, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes", "Hoja de vida", "Credencial SNS", "Credencial Sernageomin"] },
+  { rut: "12.901.238-5", fullName: "Andrés Salinas Vergara",     role: "Operador de Bulldozer",     stage: 2, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes", "Hoja de Vida del Conductor", "Credencial SNS", "Credencial Sernageomin"] },
   { rut: "13.012.349-7", fullName: "Diego Castro Núñez",         role: "Prevencionista de Riesgos", stage: 2, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes"] },
-  { rut: "14.123.450-9", fullName: "Camilo Reyes Flores",        role: "Operador de Bulldozer",     stage: 2, docsApproved: ["Cédula de Identidad", "Hoja de vida"] },
+  { rut: "14.123.450-9", fullName: "Camilo Reyes Flores",        role: "Operador de Bulldozer",     stage: 2, docsApproved: ["Cédula de Identidad", "Hoja de Vida del Conductor"] },
   { rut: "15.234.561-1", fullName: "Javiera Moreno Espinoza",    role: "Jefe de Oficina Técnica",   stage: 2, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes", "Credencial SNS"] },
   { rut: "16.345.672-3", fullName: "Valentina Torres Araya",     role: "Prevencionista de Riesgos", stage: 2, docsApproved: ["Cédula de Identidad"] },
 
   // Etapa 3 — Proceso de Contratación (3)
-  { rut: "12.456.783-5", fullName: "Roberto Muñoz Castillo",     role: "Operador de Bulldozer",     stage: 3, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes", "Hoja de vida"] },
+  { rut: "12.456.783-5", fullName: "Roberto Muñoz Castillo",     role: "Operador de Bulldozer",     stage: 3, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes", "Hoja de Vida del Conductor"] },
   { rut: "13.567.894-7", fullName: "Patricia Leiva Gutiérrez",   role: "Jefe de Oficina Técnica",   stage: 3, docsApproved: ["Cédula de Identidad", "Certificado de Antecedentes"] },
   { rut: "14.678.905-9", fullName: "Eduardo Silva Bravo",        role: "Operador de Bulldozer",     stage: 3, docsApproved: ["Cédula de Identidad"] },
 

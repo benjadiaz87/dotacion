@@ -86,7 +86,7 @@ const STAGE1_RECOMMENDED = [
   "Licencia de conducir vigente",
   "Credencial SNS",
   "Credencial Sernageomin",
-  "Hoja de vida",
+  "Hoja de Vida del Conductor",
   "Título profesional/Técnico",
 ];
 
