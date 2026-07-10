@@ -5,6 +5,7 @@ import { assertCanWrite, assertCanUploadFor } from "@/lib/authz";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { safeExtension, assertUploadSize, saveUpload } from "@/lib/uploads";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { z } from "zod";
@@ -240,31 +241,27 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
 
   const documentNumber = (formData.get("documentNumber") as string | null)?.trim() || null;
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-
-  const ext = file.name.split(".").pop() || "bin";
+  // Solo tipos de documento esperados y con límite de tamaño
+  const ext = safeExtension(file.name);
+  assertUploadSize(file);
   const fileName = `${workerId}-${documentTypeId}-${Date.now()}.${ext}`;
-  const filePath = path.join(uploadsDir, fileName);
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+  const fileUrl = await saveUpload(fileName, Buffer.from(await file.arrayBuffer()));
 
   // Reverso opcional (p. ej. licencia de conducir): se guarda junto al anverso
   // y su URL viaja en extractedData para que la verificación lo use
   let backUrl: string | null = null;
   const back = formData.get("fileBack") as File | null;
   if (back && back.size > 0) {
-    const backExt = back.name.split(".").pop() || "bin";
+    const backExt = safeExtension(back.name);
+    assertUploadSize(back);
     const backName = `${workerId}-${documentTypeId}-${Date.now()}-reverso.${backExt}`;
-    await writeFile(path.join(uploadsDir, backName), Buffer.from(await back.arrayBuffer()));
-    backUrl = `/uploads/${backName}`;
+    backUrl = await saveUpload(backName, Buffer.from(await back.arrayBuffer()));
   }
 
   const doc = await db.workerDocument.upsert({
     where: { workerId_documentTypeId: { workerId, documentTypeId } },
     update: {
-      fileUrl: `/uploads/${fileName}`,
+      fileUrl,
       fileName: file.name,
       documentNumber,
       status: "PENDING",
@@ -274,7 +271,7 @@ export async function uploadWorkerDocument(workerId: string, documentTypeId: str
     create: {
       workerId,
       documentTypeId,
-      fileUrl: `/uploads/${fileName}`,
+      fileUrl,
       fileName: file.name,
       documentNumber,
       status: "PENDING",

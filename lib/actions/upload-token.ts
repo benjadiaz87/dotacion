@@ -3,6 +3,7 @@
 import { assertCanWrite } from "@/lib/authz";
 
 import { db } from "@/lib/db";
+import { randomBytes } from "crypto";
 
 export async function generateUploadToken(workerId: string): Promise<string> {
   await assertCanWrite();
@@ -13,7 +14,8 @@ export async function generateUploadToken(workerId: string): Promise<string> {
   expiresAt.setDate(expiresAt.getDate() + 7);
 
   const record = await db.workerUploadToken.create({
-    data: { workerId, expiresAt },
+    // Token criptográfico: el cuid por defecto deriva del timestamp y es adivinable
+    data: { workerId, expiresAt, token: randomBytes(32).toString("hex") },
   });
 
   return record.token;

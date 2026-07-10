@@ -5,8 +5,7 @@ import { auth } from "@/lib/auth";
 import { assertCanWrite } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { safeExtension, assertUploadSize, saveUpload } from "@/lib/uploads";
 
 export type FeatureRequestItem = {
   id: string;
@@ -47,16 +46,13 @@ export async function createFeatureRequest(data: z.infer<typeof featureSchema>, 
   // Capturas opcionales — se guardan junto a los demás archivos en uploads/
   const urls: string[] = [];
   const files = (formData?.getAll("images") ?? []) as File[];
-  if (files.length > 0) {
-    const dir = path.join(process.cwd(), "public", "uploads", "qa");
-    await mkdir(dir, { recursive: true });
-    for (const f of files.slice(0, 6)) {
-      if (!f || f.size === 0 || !f.type.startsWith("image/")) continue;
-      const ext = f.name.split(".").pop() || "png";
-      const name = `qa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      await writeFile(path.join(dir, name), Buffer.from(await f.arrayBuffer()));
-      urls.push(`/uploads/qa/${name}`);
-    }
+  for (const f of files.slice(0, 6)) {
+    if (!f || f.size === 0 || !f.type.startsWith("image/")) continue;
+    const ext = safeExtension(f.name);
+    if (ext === "pdf") continue; // solo imágenes en capturas
+    assertUploadSize(f);
+    const name = `qa/qa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    urls.push(await saveUpload(name, Buffer.from(await f.arrayBuffer())));
   }
 
   await db.featureRequest.create({

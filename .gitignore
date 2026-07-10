@@ -49,3 +49,4 @@ next-env.d.ts
 # uploaded documents (local storage — usar object storage en producción)
 /public/uploads/*
 !/public/uploads/.gitkeep
+/storage/

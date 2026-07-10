@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { readFile } from "fs/promises";
 import path from "path";
+import { resolveUploadPath } from "@/lib/uploads";
 
 // ─── Licencia de conducir ──────────────────────────────────────────────────────
 
@@ -103,7 +104,7 @@ export async function validateLicenciaDoc(
   if (!doc) throw new Error("Documento no encontrado");
   await assertCanUploadFor(doc.workerId);
 
-  const filePath = path.join(process.cwd(), "public", doc.fileUrl);
+  const filePath = resolveUploadPath(doc.fileUrl);
   const buffer = await readFile(filePath);
   const frontBase64 = buffer.toString("base64");
 
@@ -119,7 +120,7 @@ export async function validateLicenciaDoc(
     reversoUrl = doc.extractedData ? (JSON.parse(doc.extractedData).reversoUrl ?? null) : null;
   } catch { /* extractedData de una verificación anterior sin reverso */ }
   if (reversoUrl) {
-    const backBuffer = await readFile(path.join(process.cwd(), "public", reversoUrl));
+    const backBuffer = await readFile(resolveUploadPath(reversoUrl));
     body.back = backBuffer.toString("base64");
     body.backMime = getMime(reversoUrl);
   }
@@ -207,7 +208,7 @@ export async function extractAntecedentesFromPdf(
   if (!doc) throw new Error("Documento no encontrado");
   await assertCanUploadFor(doc.workerId);
 
-  const filePath = path.join(process.cwd(), "public", doc.fileUrl);
+  const filePath = resolveUploadPath(doc.fileUrl);
   const buffer = await readFile(filePath);
   const pdfBase64 = buffer.toString("base64");
 
@@ -306,7 +307,7 @@ export async function extractHojaVidaFromPdf(
   if (!doc) throw new Error("Documento no encontrado");
   await assertCanUploadFor(doc.workerId);
 
-  const filePath = path.join(process.cwd(), "public", doc.fileUrl);
+  const filePath = resolveUploadPath(doc.fileUrl);
   const buffer = await readFile(filePath);
   const pdfBase64 = buffer.toString("base64");
 
@@ -360,7 +361,7 @@ export async function extractCarnetFromImage(
   if (!doc) throw new Error("Documento no encontrado");
   await assertCanUploadFor(doc.workerId);
 
-  const filePath = path.join(process.cwd(), "public", doc.fileUrl);
+  const filePath = resolveUploadPath(doc.fileUrl);
   const buffer = await readFile(filePath);
   const imageBase64 = buffer.toString("base64");
   const ext = doc.fileName.split(".").pop()?.toLowerCase() ?? "jpg";
