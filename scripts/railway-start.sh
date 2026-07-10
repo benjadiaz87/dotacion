@@ -7,5 +7,5 @@ mkdir -p /data/uploads
 rm -rf public/uploads
 ln -sfn /data/uploads public/uploads
 
-npx prisma migrate deploy
+npx prisma@5.22.0 migrate deploy
 exec npx next start -p "${PORT:-3000}"
