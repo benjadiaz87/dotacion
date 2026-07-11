@@ -1,6 +1,6 @@
 "use server";
 
-import { assertCanWrite } from "@/lib/authz";
+import { assertCanWrite, assertAuthenticated } from "@/lib/authz";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -88,6 +88,7 @@ export async function deleteProject(id: string) {
 }
 
 export async function getProjects() {
+  await assertAuthenticated();
   const session = await auth();
   if (!session?.user?.id) return [];
 
@@ -108,6 +109,7 @@ export async function getProjects() {
 }
 
 export async function getProject(id: string) {
+  await assertAuthenticated();
   return db.project.findUnique({
     where: { id },
     include: {
@@ -120,5 +122,6 @@ export async function getProject(id: string) {
 }
 
 export async function getRoles() {
+  await assertAuthenticated();
   return db.role.findMany({ orderBy: { category: "asc" } });
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { assertCanWrite, assertCanUploadFor } from "@/lib/authz";
+import { assertCanWrite, assertCanUploadFor, assertAuthenticated } from "@/lib/authz";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -35,6 +35,7 @@ export async function getOrCreateWorker(data: z.infer<typeof workerSchema>) {
 }
 
 export async function searchWorkers(query: string) {
+  await assertAuthenticated();
   if (!query || query.length < 2) return [];
   return db.worker.findMany({
     where: {
@@ -56,6 +57,7 @@ export type WorkerSearchResult = {
 };
 
 export async function searchWorkersWithStatus(query: string): Promise<WorkerSearchResult[]> {
+  await assertAuthenticated();
   if (!query || query.length < 2) return [];
   const [workers, maxStage] = await Promise.all([
     db.worker.findMany({
@@ -82,10 +84,12 @@ export async function searchWorkersWithStatus(query: string): Promise<WorkerSear
 }
 
 export async function getDocumentTypes() {
+  await assertAuthenticated();
   return db.documentType.findMany({ orderBy: { name: "asc" } });
 }
 
 export async function getWorker(id: string) {
+  await assertAuthenticated();
   return db.worker.findUnique({
     where: { id },
     include: {
@@ -96,6 +100,7 @@ export async function getWorker(id: string) {
 }
 
 export async function isWorkerHabilitado(workerId: string): Promise<boolean> {
+  await assertAuthenticated();
   const [worker, maxStage] = await Promise.all([
     db.worker.findUnique({ where: { id: workerId }, select: { currentStageOrder: true } }),
     db.stage.aggregate({ _max: { order: true } }),
@@ -121,6 +126,7 @@ export type WorkerListItem = {
 };
 
 export async function getAllWorkers(): Promise<WorkerListItem[]> {
+  await assertAuthenticated();
   const [workers, requiredTypes, stages] = await Promise.all([
     db.worker.findMany({
       include: {
@@ -325,6 +331,7 @@ export type WeekDotacion = {
 };
 
 export async function getProjectDotacionByWeek(projectId: string): Promise<WeekDotacion[]> {
+  await assertAuthenticated();
   const project = await db.project.findUnique({
     where: { id: projectId },
     include: {
@@ -446,6 +453,7 @@ export type CriticalForecast = {
 } | null;
 
 export async function getProjectCriticalForecast(projectId: string): Promise<CriticalForecast> {
+  await assertAuthenticated();
   const weeksData = await getProjectDotacionByWeek(projectId);
   if (weeksData.length === 0) return null;
 
@@ -484,6 +492,7 @@ export type CompanyStats = {
 };
 
 export async function getCompanyStats(): Promise<CompanyStats> {
+  await assertAuthenticated();
   const activeProjects = await db.project.findMany({
     where: { status: "ACTIVE" },
     select: { id: true, name: true, createdAt: true },
@@ -558,6 +567,7 @@ export type PipelineStats = {
 };
 
 export async function getPipelineStats(): Promise<PipelineStats> {
+  await assertAuthenticated();
   const [stages, workers, pendingDocs] = await Promise.all([
     db.stage.findMany({ orderBy: { order: "asc" } }),
     db.worker.findMany({ select: { currentStageOrder: true } }),
@@ -591,6 +601,7 @@ export type GlobalSearchData = {
 };
 
 export async function getGlobalSearchData(): Promise<GlobalSearchData> {
+  await assertAuthenticated();
   const [workers, projects, stages] = await Promise.all([
     db.worker.findMany({ select: { id: true, fullName: true, rut: true, currentStageOrder: true }, orderBy: { fullName: "asc" } }),
     db.project.findMany({ select: { id: true, name: true, client: true, status: true }, orderBy: { name: "asc" } }),

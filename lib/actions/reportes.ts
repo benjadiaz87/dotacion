@@ -1,4 +1,5 @@
 "use server";
+import { assertAuthenticated } from "@/lib/authz";
 
 import { db } from "@/lib/db";
 import { computeSemaphore, computeRoleFillSplit, type DocSemaphore } from "@/lib/project-utils";
@@ -50,6 +51,7 @@ export type ReportesData = {
 };
 
 export async function getReportesData(): Promise<ReportesData> {
+  await assertAuthenticated();
   const [projects, requiredTypes, allWorkers] = await Promise.all([
     db.project.findMany({
       where: { status: { in: ["ACTIVE", "PAUSED"] } },

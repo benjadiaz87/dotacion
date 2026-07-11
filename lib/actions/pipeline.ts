@@ -1,6 +1,6 @@
 "use server";
 
-import { assertCanWrite } from "@/lib/authz";
+import { assertCanWrite, assertAuthenticated } from "@/lib/authz";
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -34,6 +34,7 @@ export type WorkerPipelineData = {
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getWorkerPipeline(workerId: string): Promise<WorkerPipelineData> {
+  await assertAuthenticated();
   const [worker, stages] = await Promise.all([
     db.worker.findUniqueOrThrow({
       where: { id: workerId },

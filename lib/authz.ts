@@ -9,6 +9,15 @@ export async function getSessionRole(): Promise<AppRole | null> {
   return role && (ROLES as readonly string[]).includes(role) ? (role as AppRole) : null;
 }
 
+// Lectura de datos internos: exige sesión válida (cualquier rol).
+// Necesario porque las server actions se pueden invocar por su ID desde
+// cualquier ruta que el middleware deje pasar (p. ej. /upload), así que no
+// basta con proteger las páginas del dashboard.
+export async function assertAuthenticated() {
+  const role = await getSessionRole();
+  if (!role) throw new Error("No autorizado");
+}
+
 // Mutaciones generales: cualquier rol excepto AUDITOR (solo lectura)
 export async function assertCanWrite() {
   const role = await getSessionRole();

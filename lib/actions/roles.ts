@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
-import { assertSuperadmin } from "@/lib/authz";
+import { assertSuperadmin, assertAuthenticated, assertCanWrite } from "@/lib/authz";
 
 const assertCargoAdmin = assertSuperadmin;
 
@@ -35,6 +35,7 @@ export type CargosData = {
 };
 
 export async function getCargosData(): Promise<CargosData> {
+  await assertAuthenticated();
   const [roles, stages, documentTypes, baseReqs] = await Promise.all([
     db.role.findMany({
       orderBy: { name: "asc" },
@@ -100,6 +101,7 @@ export type RoleDetail = {
 };
 
 export async function getRoleDetail(roleId: string): Promise<RoleDetail | null> {
+  await assertAuthenticated();
   const [role, stages, documentTypes] = await Promise.all([
     db.role.findUnique({
       where: { id: roleId },
@@ -249,6 +251,7 @@ export async function removeRoleRequirement(requirementId: string) {
 // no estén completos. Si todo está OK queda habilitado (stagesTotal + 1).
 
 export async function recalcAllWorkerStages(): Promise<{ moved: number }> {
+  await assertCanWrite();
   const [stages, allReqs, workers] = await Promise.all([
     db.stage.findMany({ orderBy: { order: "asc" }, select: { id: true, order: true } }),
     db.stageDocRequirement.findMany({ include: { documentType: { select: { required: true } } } }),

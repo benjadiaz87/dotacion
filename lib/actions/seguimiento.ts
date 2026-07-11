@@ -1,4 +1,5 @@
 "use server";
+import { assertAuthenticated } from "@/lib/authz";
 
 import { db } from "@/lib/db";
 import { getProjectDotacionByWeek } from "@/lib/actions/workers";
@@ -53,6 +54,7 @@ export type SeguimientoData = {
 };
 
 export async function getProjectSeguimiento(projectId: string): Promise<SeguimientoData> {
+  await assertAuthenticated();
   const [stages, weeksData, assignments] = await Promise.all([
     db.stage.findMany({ orderBy: { order: "asc" }, select: { order: true, name: true } }),
     getProjectDotacionByWeek(projectId),

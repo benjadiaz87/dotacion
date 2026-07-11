@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { assertCanWrite } from "@/lib/authz";
+import { assertCanWrite, assertAuthenticated } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { safeExtension, assertUploadSize, saveUpload } from "@/lib/uploads";
@@ -24,6 +24,7 @@ export type FeatureRequestItem = {
 };
 
 export async function getFeatureRequests(): Promise<FeatureRequestItem[]> {
+  await assertAuthenticated();
   return db.featureRequest.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }] });
 }
 

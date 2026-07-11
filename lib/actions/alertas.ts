@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { assertCanWrite } from "@/lib/authz";
+import { assertCanWrite, assertAuthenticated } from "@/lib/authz";
 import { getProjectDotacionByWeek } from "@/lib/actions/workers";
 import { revalidatePath } from "next/cache";
 
@@ -18,6 +18,7 @@ export type AlertConfig = {
 };
 
 export async function getAlertConfig(): Promise<AlertConfig> {
+  await assertAuthenticated();
   const s = await db.alertSetting.upsert({
     where: { id: "default" },
     update: {},
@@ -65,6 +66,7 @@ export type AlertasData = {
 };
 
 export async function getAlertas(): Promise<AlertasData> {
+  await assertAuthenticated();
   const config = await getAlertConfig();
   const alertas: AlertItem[] = [];
   const now = Date.now();
