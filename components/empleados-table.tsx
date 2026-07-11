@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileSpreadsheet, Loader2, Search, Trash2, Users, X } from "lucide-react";
+import { FileSpreadsheet, Loader2, Search, Sparkles, Trash2, Users, X } from "lucide-react";
 import Link from "next/link";
 import type { WorkerListItem } from "@/lib/actions/workers";
 import { deleteWorker } from "@/lib/actions/workers";
@@ -70,6 +70,15 @@ function DeleteableWorkerRow({ worker, canWrite = true }: { worker: WorkerListIt
               {worker.semaphore === "green" ? "Habilitado" : worker.stageName}
             </span>
             <span className="flex items-center gap-1.5 flex-shrink-0">
+              {worker.pendingDotiaCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 rounded-full px-1.5 py-0.5"
+                  title={`${worker.pendingDotiaCount} documento(s) esperando Validación Dotia`}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {worker.pendingDotiaCount}
+                </span>
+              )}
               {worker.pendingReviewCount > 0 && (
                 <span
                   className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5"
@@ -166,6 +175,7 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
   const [semaphoreFilter, setSemaphoreFilter] = useState(ALL);
   const [asignableFilter, setAsignableFilter] = useState(ALL);
   const [projectFilter, setProjectFilter] = useState(ALL);
+  const [dotiaFilter, setDotiaFilter] = useState(false);
 
   const roleOptions = useMemo(() => {
     const map = new Map<string, { id: string; name: string; color: string }>();
@@ -193,18 +203,20 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
       if (semaphoreFilter !== ALL && w.semaphore !== semaphoreFilter) return false;
       if (asignableFilter !== ALL && String(w.asignable) !== asignableFilter) return false;
       if (projectFilter !== ALL && !w.projects.some((p) => p.id === projectFilter)) return false;
+      if (dotiaFilter && w.pendingDotiaCount === 0) return false;
       return true;
     });
-  }, [workers, query, roleFilter, semaphoreFilter, asignableFilter, projectFilter]);
+  }, [workers, query, roleFilter, semaphoreFilter, asignableFilter, projectFilter, dotiaFilter]);
 
   const counts = {
     asignables: workers.filter((w) => w.asignable).length,
     parciales: workers.filter((w) => w.semaphore === "yellow").length,
     bloqueados: workers.filter((w) => w.semaphore === "red").length,
+    dotia: workers.filter((w) => w.pendingDotiaCount > 0).length,
   };
 
   const hasActiveFilters =
-    query !== "" || roleFilter !== ALL || semaphoreFilter !== ALL || asignableFilter !== ALL || projectFilter !== ALL;
+    query !== "" || roleFilter !== ALL || semaphoreFilter !== ALL || asignableFilter !== ALL || projectFilter !== ALL || dotiaFilter;
 
   function clearFilters() {
     setQuery("");
@@ -212,13 +224,24 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
     setSemaphoreFilter(ALL);
     setAsignableFilter(ALL);
     setProjectFilter(ALL);
+    setDotiaFilter(false);
   }
 
   return (
     <div>
       {/* KPIs — clickeables como filtros */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
+          {
+            label: "Validación Dotia",
+            count: counts.dotia,
+            activeWhen: dotiaFilter,
+            onClick: () => setDotiaFilter((v) => !v),
+            colors: "bg-violet-50 border-violet-200 text-violet-700",
+            activeBorder: "ring-2 ring-violet-500",
+            bold: "text-violet-800",
+            icon: true,
+          },
           {
             label: "Asignables",
             count: counts.asignables,
@@ -255,10 +278,15 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
               kpi.activeWhen ? kpi.activeBorder : "hover:brightness-95"
             }`}
           >
-            <p className="text-xs mb-1 font-medium">{kpi.label}</p>
+            <p className="text-xs mb-1 font-medium flex items-center gap-1">
+              {"icon" in kpi && kpi.icon && <Sparkles className="w-3 h-3" />}
+              {kpi.label}
+            </p>
             <p className={`text-2xl font-bold ${kpi.bold}`}>{kpi.count}</p>
             <p className="text-[10px] mt-1 opacity-60">
-              {kpi.activeWhen ? "Clic para quitar filtro" : "Clic para filtrar"}
+              {"icon" in kpi && kpi.icon
+                ? (kpi.activeWhen ? "Clic para ver todos" : "Esperan validación automática")
+                : (kpi.activeWhen ? "Clic para quitar filtro" : "Clic para filtrar")}
             </p>
           </button>
         ))}

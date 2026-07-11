@@ -123,7 +123,15 @@ export type WorkerListItem = {
   stageName: string;
   stagesTotal: number;
   pendingReviewCount: number;
+  pendingDotiaCount: number;
 };
+
+// Tipos de documento con Validación Dotia (verificación automática con IA + Registro Civil)
+function isDotiaVerifiable(name: string): boolean {
+  const n = name.toLowerCase();
+  if (n.includes("hoja de vida") && n.includes("conductor")) return true;
+  return ["cédula", "cedula", "carnet", "identidad", "antecedente", "licencia", "conducir"].some((k) => n.includes(k));
+}
 
 export async function getAllWorkers(): Promise<WorkerListItem[]> {
   await assertAuthenticated();
@@ -156,6 +164,9 @@ export async function getAllWorkers(): Promise<WorkerListItem[]> {
       : "red";
 
     const pendingReviewCount = w.documents.filter((d) => d.status === "PENDING").length;
+    const pendingDotiaCount = w.documents.filter(
+      (d) => d.status === "PENDING" && isDotiaVerifiable(d.documentType.name)
+    ).length;
     const stageName = habilitado
       ? "Habilitado"
       : stages.find((s) => s.order === w.currentStageOrder)?.name ?? "—";
@@ -191,6 +202,7 @@ export async function getAllWorkers(): Promise<WorkerListItem[]> {
       stageName,
       stagesTotal,
       pendingReviewCount,
+      pendingDotiaCount,
     };
   });
 }
