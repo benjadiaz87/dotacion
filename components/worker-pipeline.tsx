@@ -683,7 +683,7 @@ function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, 
       {/* Validación masiva — verifica todos los pendientes de una vez */}
       {isCurrentStage && pendingAutoCount > 0 && (
         <Button onClick={handleVerifyAll} variant="outline" className="w-full h-10 gap-2 font-semibold border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800">
-          <Sparkles className="w-4 h-4" /> Validación Dotia — validar {pendingAutoCount} documento{pendingAutoCount !== 1 ? "s" : ""} pendiente{pendingAutoCount !== 1 ? "s" : ""}
+          <Sparkles className="w-4 h-4" /> Validación Inteligente Dotia — validar {pendingAutoCount} documento{pendingAutoCount !== 1 ? "s" : ""} pendiente{pendingAutoCount !== 1 ? "s" : ""}
         </Button>
       )}
 

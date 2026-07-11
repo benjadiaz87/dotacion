@@ -126,7 +126,7 @@ export type WorkerListItem = {
   pendingDotiaCount: number;
 };
 
-// Tipos de documento con Validación Dotia (verificación automática con IA + Registro Civil)
+// Tipos de documento con Validación Inteligente Dotia (verificación automática con IA + Registro Civil)
 function isDotiaVerifiable(name: string): boolean {
   const n = name.toLowerCase();
   if (n.includes("hoja de vida") && n.includes("conductor")) return true;

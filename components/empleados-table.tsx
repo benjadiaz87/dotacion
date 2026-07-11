@@ -73,7 +73,7 @@ function DeleteableWorkerRow({ worker, canWrite = true }: { worker: WorkerListIt
               {worker.pendingDotiaCount > 0 && (
                 <span
                   className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 rounded-full px-1.5 py-0.5"
-                  title={`${worker.pendingDotiaCount} documento(s) esperando Validación Dotia`}
+                  title={`${worker.pendingDotiaCount} documento(s) esperando Validación Inteligente Dotia`}
                 >
                   <Sparkles className="w-2.5 h-2.5" />
                   {worker.pendingDotiaCount}
@@ -233,7 +233,7 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           {
-            label: "Validación Dotia",
+            label: "Validación Inteligente Dotia",
             count: counts.dotia,
             activeWhen: dotiaFilter,
             onClick: () => setDotiaFilter((v) => !v),

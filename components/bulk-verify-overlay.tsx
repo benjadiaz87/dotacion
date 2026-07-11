@@ -169,7 +169,7 @@ export function BulkVerifyOverlay({ docs, onClose }: { docs: BulkDoc[]; onClose:
               </div>
               <div>
                 <p className="text-white font-black text-lg leading-tight">
-                  {finished ? "Validación Dotia completada" : "Validación Dotia"}
+                  {finished ? "Validación Inteligente Dotia completada" : "Validación Inteligente Dotia"}
                 </p>
                 <p className="text-white/75 text-xs mt-0.5">
                   {finished
