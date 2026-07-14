@@ -99,7 +99,7 @@ function StageBar({ stages, currentOrder, selectedOrder, isDone, onSelect }: {
               {done
                 ? <Check className="w-3.5 h-3.5 flex-shrink-0" />
                 : <Icon className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />}
-              <span className="text-[10px] font-bold uppercase tracking-wide leading-tight text-center truncate max-w-[80px]">
+              <span className="text-[11px] font-bold uppercase tracking-wide leading-tight text-center truncate max-w-[80px]">
                 {stage.name}
               </span>
             </div>
@@ -181,12 +181,12 @@ function ExtractedChips({ raw }: { raw: string | null }) {
           {detalle && (
             <p className="text-[11px] text-red-700 mt-1.5 whitespace-pre-wrap font-medium">{detalle}</p>
           )}
-          <p className="text-[10px] text-red-500 mt-1.5">
+          <p className="text-[11px] text-red-500 mt-1.5">
             Detalle capturado por la IA desde el certificado — verifica contra el documento original.
           </p>
         </div>
       )}
-      <p className="text-[9px] font-bold uppercase tracking-widest text-violet-500 mb-1.5">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-violet-500 mb-1.5">
         Datos capturados por la IA
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -212,7 +212,7 @@ function ExtractedChips({ raw }: { raw: string | null }) {
         )}
         {entries.map(([k, v]) => (
           <span key={k} className="inline-flex items-center gap-1.5 rounded-md border border-violet-100 bg-violet-50/50 px-2 py-1">
-            <span className="text-[9px] uppercase tracking-wider font-semibold text-violet-400">{EXTRACT_LABELS[k]}</span>
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-violet-400">{EXTRACT_LABELS[k]}</span>
             <span className="text-[11px] font-bold font-mono text-foreground">
               {typeof v === "boolean" ? (v ? "Sí" : "No") : String(v)}
             </span>
@@ -368,9 +368,9 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
           <div className="flex-1 min-w-0">
             <span className="text-sm font-medium text-slate-500 truncate">{doc.documentType.name}</span>
             {!doc.documentType.required && (
-              <span className="ml-2 text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-medium">opcional</span>
+              <span className="ml-2 text-[11px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-medium">opcional</span>
             )}
-            <p className="text-[10px] text-slate-400 mt-0.5">Pendiente — etapa futura</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Pendiente — etapa futura</p>
           </div>
         </div>
       </div>
@@ -389,20 +389,20 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-foreground truncate">{doc.documentType.name}</span>
             {!doc.documentType.required && (
-              <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">opcional</span>
+              <span className="text-[11px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">opcional</span>
             )}
             {hasException && (
-              <span className="text-[9px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-medium">con excepción</span>
+              <span className="text-[11px] bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-medium">con excepción</span>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap mt-0.5">
             {doc.uploaded && (
-              <span className={`text-[10px] font-medium ${STATUS_CFG[doc.uploaded.status]?.text}`}>
+              <span className={`text-[11px] font-medium ${STATUS_CFG[doc.uploaded.status]?.text}`}>
                 {STATUS_CFG[doc.uploaded.status]?.label}
               </span>
             )}
             {doc.uploaded?.status === "APPROVED" && doc.uploaded.documentNumber && (
-              <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+              <span className="text-[11px] font-mono font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                 {isCarnetType(doc.documentType.name) ? `Serie: ${doc.uploaded.documentNumber}` :
                  isAntecedentesType(doc.documentType.name) ? `Folio: ${doc.uploaded.documentNumber}` :
                  isLicenciaType(doc.documentType.name) ? `Clase: ${doc.uploaded.documentNumber}` :
@@ -422,7 +422,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
           )}
           {/* Exception link — solo en etapa actual */}
           {isCurrentStage && doc.documentType.required && !isApproved && !doc.pendingExc && (
-            <button onClick={() => onException(doc.documentTypeId)} className="text-[10px] text-amber-600 hover:underline font-medium">excepción</button>
+            <button onClick={() => onException(doc.documentTypeId)} className="text-[11px] text-amber-600 hover:underline font-medium">excepción</button>
           )}
           {/* Expand toggle — siempre visible si hay algo que mostrar */}
           {(doc.uploaded || isCurrentStage) && (
@@ -487,7 +487,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
               >
                 {doc.uploaded.fileName}
               </a>
-              <span className={`ml-auto text-[10px] font-semibold ${STATUS_CFG[doc.uploaded.status]?.text}`}>
+              <span className={`ml-auto text-[11px] font-semibold ${STATUS_CFG[doc.uploaded.status]?.text}`}>
                 {STATUS_CFG[doc.uploaded.status]?.label}
               </span>
             </div>
@@ -607,7 +607,7 @@ function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, 
         <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${NEXT_TONES[nextAction.tone]}`}>
           <nextAction.icon className="w-4 h-4 flex-shrink-0" />
           <p className="text-xs font-semibold flex-1">
-            <span className="uppercase tracking-widest text-[9px] font-bold opacity-60 mr-2">Siguiente acción</span>
+            <span className="uppercase tracking-widest text-[11px] font-bold opacity-60 mr-2">Siguiente acción</span>
             {nextAction.text}
           </p>
         </div>
@@ -839,19 +839,19 @@ export function WorkerPipeline({
             </div>
             {/* Flags */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
+              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded border ${
                 isAcreditado ? "bg-orange-50 border-orange-200 text-orange-700" : "bg-muted border-border text-muted-foreground/50"
               }`}>
                 <Check className={`w-2.5 h-2.5 ${isAcreditado ? "text-orange-500" : "opacity-30"}`} />
                 Acreditado
               </span>
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
+              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded border ${
                 isContratado ? "bg-teal-50 border-teal-200 text-teal-700" : "bg-muted border-border text-muted-foreground/50"
               }`}>
                 <Check className={`w-2.5 h-2.5 ${isContratado ? "text-teal-500" : "opacity-30"}`} />
                 Contratado
               </span>
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
+              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded border ${
                 isHabilitado ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-muted border-border text-muted-foreground/50"
               }`}>
                 {isHabilitado ? <Flag className="w-2.5 h-2.5 text-emerald-500" /> : <Flag className="w-2.5 h-2.5 opacity-30" />}
@@ -885,11 +885,11 @@ export function WorkerPipeline({
           <div className="hidden lg:flex items-center gap-6 flex-shrink-0 border-l pl-6">
             <div className="text-center">
               <p className="text-2xl font-black text-foreground">{currentOrder}<span className="text-muted-foreground font-normal text-base">/7</span></p>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Etapas</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Etapas</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-black text-foreground">{approvedDocs}<span className="text-muted-foreground font-normal text-base">/{totalDocs}</span></p>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Docs OK</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Docs OK</p>
             </div>
           </div>
         </div>
@@ -928,12 +928,12 @@ export function WorkerPipeline({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="font-bold text-foreground">{selectedStage.name}</h2>
-                  <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">PROCESO</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">PROCESO</span>
                   {(!isCurrentStage && !isFutureStage) && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-muted text-muted-foreground">histórico</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-muted text-muted-foreground">histórico</span>
                   )}
                   {isFutureStage && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">próximo</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">próximo</span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{selectedStage.description}</p>
@@ -970,7 +970,7 @@ export function WorkerPipeline({
 
             {/* Progress overview */}
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Progreso general</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Progreso general</p>
               <div className="space-y-2">
                 {pipeline.stages.map((s) => {
                   const stDone = isDone || s.order < currentOrder;
@@ -997,7 +997,7 @@ export function WorkerPipeline({
                         <p className={`text-xs font-semibold truncate ${stActive ? "text-foreground" : stDone ? "text-emerald-700" : "text-muted-foreground"}`}>
                           {s.name}
                         </p>
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-wide">{s.type}</p>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{s.type}</p>
                       </div>
                     </button>
                   );
@@ -1008,7 +1008,7 @@ export function WorkerPipeline({
             {/* Proyectos */}
             {projects.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Asignaciones</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Asignaciones</p>
                 <div className="space-y-1.5">
                   {projects.map((p) => (
                     <a key={p.id} href={`/dashboard/proyectos/${p.id}`}

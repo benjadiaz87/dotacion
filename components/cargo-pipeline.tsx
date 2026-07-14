@@ -52,11 +52,11 @@ function StageBar({ stages, requirements, selectedOrder, onSelect }: {
           >
             <div className="flex items-center gap-1.5">
               <Icon className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
-              <span className="text-[10px] font-bold uppercase tracking-wide leading-tight text-center truncate max-w-[90px]">
+              <span className="text-[11px] font-bold uppercase tracking-wide leading-tight text-center truncate max-w-[90px]">
                 {stage.name}
               </span>
             </div>
-            <span className={`text-[9px] font-semibold ${selected ? "text-white/70" : "text-muted-foreground/70"}`}>
+            <span className={`text-[11px] font-semibold ${selected ? "text-white/70" : "text-muted-foreground/70"}`}>
               {count} doc{count !== 1 ? "s" : ""}
             </span>
             {selected && (
@@ -134,7 +134,7 @@ function Stage1Recommendation({ detail, stageId, onDone }: {
               className="rounded accent-violet-600"
             />
             <span className="text-xs font-medium text-foreground flex-1 truncate">{d.name}</span>
-            {!d.required && <span className="text-[9px] text-muted-foreground flex-shrink-0">opcional</span>}
+            {!d.required && <span className="text-[11px] text-muted-foreground flex-shrink-0">opcional</span>}
           </label>
         ))}
       </div>
@@ -216,7 +216,7 @@ function AddDocControls({ detail, stageId, onDone }: {
     return (
       <div className="rounded-xl border bg-background shadow-sm p-3 space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Requisitos existentes</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Requisitos existentes</p>
           <button onClick={() => { setMode("closed"); setFilter(""); }} aria-label="Cerrar">
             <X className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
           </button>
@@ -241,7 +241,7 @@ function AddDocControls({ detail, stageId, onDone }: {
               >
                 <FileText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                 <span className="flex-1 truncate font-medium">{dt.name}</span>
-                {!dt.required && <span className="text-[9px] text-muted-foreground">opcional</span>}
+                {!dt.required && <span className="text-[11px] text-muted-foreground">opcional</span>}
                 <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
               </button>
             ))
@@ -254,7 +254,7 @@ function AddDocControls({ detail, stageId, onDone }: {
   return (
     <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-3.5 space-y-2.5">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700">Crear nuevo documento</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-violet-700">Crear nuevo documento</p>
         <button onClick={() => setMode("closed")} aria-label="Cerrar">
           <X className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
         </button>
@@ -331,7 +331,7 @@ export function CargoPipeline({ detail }: { detail: RoleDetail }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-black text-foreground tracking-tight">{detail.role.name}</h1>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-2 py-0.5 rounded">
                 {detail.role.category}
               </span>
             </div>
@@ -397,7 +397,7 @@ export function CargoPipeline({ detail }: { detail: RoleDetail }) {
                     </div>
                     <span className="flex-1 text-sm font-medium text-foreground truncate">{r.name}</span>
                     {!r.required && (
-                      <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">opcional</span>
+                      <span className="text-[11px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">opcional</span>
                     )}
                     <button
                       onClick={() => handleRemove(r.id, r.name)}

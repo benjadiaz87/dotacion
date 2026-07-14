@@ -245,8 +245,8 @@ function FeatureCard({ f, canWrite }: { f: FeatureRequestItem; canWrite: boolean
             {f.area} · por {f.createdBy} · {new Date(f.createdAt).toLocaleDateString("es-CL")}
           </p>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${pr.cls}`}>{pr.label}</span>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${st.cls}`}>{st.label}</span>
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${pr.cls}`}>{pr.label}</span>
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${st.cls}`}>{st.label}</span>
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -261,22 +261,22 @@ function FeatureCard({ f, canWrite }: { f: FeatureRequestItem; canWrite: boolean
           >
             <div className="px-4 pb-4 border-t pt-3 space-y-3">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Problema que resuelve</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Problema que resuelve</p>
                 <p className="text-xs text-foreground whitespace-pre-wrap">{f.problema}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Comportamiento esperado</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Comportamiento esperado</p>
                 <p className="text-xs text-foreground whitespace-pre-wrap">{f.comportamiento}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
                   <Target className="w-3 h-3" /> Criterios de aceptación
                 </p>
                 <p className="text-xs text-foreground whitespace-pre-wrap">{f.criterios}</p>
               </div>
               {f.pantalla && (
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
                     <MapPin className="w-3 h-3" /> Dónde vive
                   </p>
                   <p className="text-xs font-mono text-foreground">{f.pantalla}</p>
@@ -288,7 +288,7 @@ function FeatureCard({ f, canWrite }: { f: FeatureRequestItem; canWrite: boolean
                 if (imgs.length === 0) return null;
                 return (
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
                       <ImagePlus className="w-3 h-3" /> Capturas
                     </p>
                     <div className="flex flex-wrap gap-2">

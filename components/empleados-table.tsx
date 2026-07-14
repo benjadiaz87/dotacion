@@ -72,7 +72,7 @@ function DeleteableWorkerRow({ worker, canWrite = true }: { worker: WorkerListIt
             <span className="flex items-center gap-1.5 flex-shrink-0">
               {worker.pendingDotiaCount > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 rounded-full px-1.5 py-0.5"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-700 bg-violet-100 border border-violet-200 rounded-full px-1.5 py-0.5"
                   title={`${worker.pendingDotiaCount} documento(s) esperando Validación Inteligente Dotia`}
                 >
                   <Sparkles className="w-2.5 h-2.5" />
@@ -81,14 +81,14 @@ function DeleteableWorkerRow({ worker, canWrite = true }: { worker: WorkerListIt
               )}
               {worker.pendingReviewCount > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5"
                   title={`${worker.pendingReviewCount} documento(s) por revisar`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                   {worker.pendingReviewCount}
                 </span>
               )}
-              <span className="text-[10px] text-muted-foreground font-semibold">
+              <span className="text-[11px] text-muted-foreground font-semibold">
                 {worker.semaphore === "green"
                   ? "✓"
                   : `${Math.min(worker.currentStageOrder, worker.stagesTotal)}/${worker.stagesTotal}`}
@@ -283,7 +283,7 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
               {kpi.label}
             </p>
             <p className={`text-2xl font-bold ${kpi.bold}`}>{kpi.count}</p>
-            <p className="text-[10px] mt-1 opacity-60">
+            <p className="text-[11px] mt-1 opacity-60">
               {"icon" in kpi && kpi.icon
                 ? (kpi.activeWhen ? "Clic para ver todos" : "Esperan validación automática")
                 : (kpi.activeWhen ? "Clic para quitar filtro" : "Clic para filtrar")}

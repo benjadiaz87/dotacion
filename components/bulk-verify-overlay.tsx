@@ -188,7 +188,7 @@ export function BulkVerifyOverlay({ docs, onClose }: { docs: BulkDoc[]; onClose:
                   transition={{ type: "spring", stiffness: 120, damping: 20 }}
                 />
               </div>
-              <p className="text-right text-[10px] font-bold text-white/80 mt-1.5">{doneCount}/{docs.length}</p>
+              <p className="text-right text-[11px] font-bold text-white/80 mt-1.5">{doneCount}/{docs.length}</p>
             </div>
           </div>
 

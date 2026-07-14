@@ -67,7 +67,7 @@ function CreateRoleCard() {
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${
+            className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors ${
               category === c ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"
             }`}
           >
@@ -137,7 +137,7 @@ function RoleCard({ role, stagesCount, onDone }: {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{role.name}</p>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded inline-block mt-1">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded inline-block mt-1">
               {role.category}
             </span>
           </div>
@@ -206,7 +206,7 @@ function RoleCard({ role, stagesCount, onDone }: {
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1.5">
+        <p className="text-[11px] text-muted-foreground mt-1.5">
           {stagesWithDocs}/{stagesCount} etapas con requisitos
         </p>
       </div>

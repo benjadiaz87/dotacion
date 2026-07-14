@@ -75,7 +75,7 @@ export function ProyectosHero({
                 <p className="text-lg font-black text-foreground leading-none">
                   <CountUp value={dotacionCubierta} /><span className="text-muted-foreground font-bold text-sm">/{dotacionRequerida}</span>
                 </p>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-1">Cobertura dotación</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-1">Cobertura dotación</p>
               </div>
             </div>
 

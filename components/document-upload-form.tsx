@@ -104,7 +104,7 @@ function StepIndicator({ phase, verifyLabel = "Registro Civil" }: { phase: Phase
                    </span>
                  ) : <span>{i + 1}</span>}
               </div>
-              <span className={`text-[9px] mt-1.5 text-center leading-tight font-medium ${
+              <span className={`text-[11px] mt-1.5 text-center leading-tight font-medium ${
                 isActive ? "text-primary" : isDone ? "text-emerald-600" : "text-muted-foreground/60"
               }`}>{s.label}</span>
             </div>
@@ -141,19 +141,19 @@ function ExtractedCardAntecedentes({ data, dim }: { data: AntecedentesExtracted;
 
       {/* Folio + código — los datos únicos del certificado */}
       <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 space-y-2">
-        <p className="text-[9px] font-bold uppercase tracking-widest text-violet-500">Identificadores únicos del certificado</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-violet-500">Identificadores únicos del certificado</p>
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-white rounded-lg border border-violet-100 px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-violet-400 mb-1">
               <Hash className="w-3 h-3" />
-              <span className="text-[9px] uppercase tracking-widest font-semibold">Folio</span>
+              <span className="text-[11px] uppercase tracking-widest font-semibold">Folio</span>
             </div>
             <p className="text-sm font-black font-mono text-foreground tracking-tight">{data.folio ?? "—"}</p>
           </div>
           <div className="bg-white rounded-lg border border-violet-100 px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-violet-400 mb-1">
               <ShieldCheck className="w-3 h-3" />
-              <span className="text-[9px] uppercase tracking-widest font-semibold">Código verificación</span>
+              <span className="text-[11px] uppercase tracking-widest font-semibold">Código verificación</span>
             </div>
             <p className="text-sm font-black font-mono text-foreground tracking-tight">{data.codigoVerificacion ?? "—"}</p>
           </div>
@@ -171,7 +171,7 @@ function ExtractedCardAntecedentes({ data, dim }: { data: AntecedentesExtracted;
           <div key={label} className="bg-white rounded-xl border border-border/60 px-3 py-2.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
               {icon}
-              <span className="text-[9px] uppercase tracking-widest font-semibold">{label}</span>
+              <span className="text-[11px] uppercase tracking-widest font-semibold">{label}</span>
             </div>
             <p className="text-sm font-bold font-mono text-foreground truncate">{value}</p>
           </div>
@@ -211,7 +211,7 @@ function ExtractedCard({ data, dim }: { data: CarnetExtracted; dim?: boolean }) 
             <div key={key} className="bg-white rounded-xl border border-border/60 px-3 py-2.5 shadow-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 {icon}
-                <span className="text-[9px] uppercase tracking-widest font-semibold">{label}</span>
+                <span className="text-[11px] uppercase tracking-widest font-semibold">{label}</span>
               </div>
               <p className="text-sm font-bold font-mono text-foreground truncate">{value}</p>
             </div>
@@ -562,7 +562,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                 <p className={`text-xs font-semibold truncate ${backFile ? "text-primary" : "text-foreground"}`}>
                   {backFile?.name ?? "Reverso de la licencia (opcional)"}
                 </p>
-                <p className="text-[10px] text-muted-foreground">Mejora la lectura de clases y restricciones</p>
+                <p className="text-[11px] text-muted-foreground">Mejora la lectura de clases y restricciones</p>
               </div>
               <input
                 type="file"
@@ -666,13 +666,13 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                   <div className="mt-3 flex flex-wrap gap-2">
                     {verificationLic.data.clases.split(",").map(c => (
                       <div key={c} className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">Clase</p>
+                        <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wider">Clase</p>
                         <p className="text-xs font-bold text-white font-mono">{c.trim()}</p>
                       </div>
                     ))}
                     {verificationLic.diasRestantes !== null && (
                       <div className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">Días restantes</p>
+                        <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wider">Días restantes</p>
                         <p className="text-xs font-bold text-white font-mono">{verificationLic.diasRestantes}</p>
                       </div>
                     )}
@@ -684,7 +684,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
           {verificationLic.valid && (
             <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100">
-              <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest mb-3">Datos verificados</p>
+              <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest mb-3">Datos verificados</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {[
                   { label: "Titular",           value: verificationLic.data.fullName },
@@ -698,7 +698,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                       <Check className="w-2.5 h-2.5 text-emerald-700" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
+                      <p className="text-[11px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
                       <p className="text-xs font-bold text-emerald-900 truncate">{value}</p>
                     </div>
                   </div>
@@ -708,7 +708,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           )}
 
           <div className="px-5 py-4 bg-white">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Proceso ejecutado</p>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Proceso ejecutado</p>
             <div className="relative">
               <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
               <div className="space-y-4">
@@ -760,7 +760,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                       { label: "RUT",   value: verificationAnt.confirmedRut   ?? extractedAnt?.rut },
                     ].filter(f => f.value).map(({ label, value }) => (
                       <div key={label} className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">{label}</p>
+                        <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wider">{label}</p>
                         <p className="text-xs font-bold text-white font-mono">{value}</p>
                       </div>
                     ))}
@@ -772,7 +772,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
           {verificationAnt.valid && extractedAnt && (
             <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100">
-              <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest mb-3">Datos confirmados</p>
+              <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest mb-3">Datos confirmados</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {[
                   { label: "Titular",   value: extractedAnt.fullName },
@@ -785,7 +785,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                       <Check className="w-2.5 h-2.5 text-emerald-700" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
+                      <p className="text-[11px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
                       <p className="text-xs font-bold text-emerald-900 truncate">{value}</p>
                     </div>
                   </div>
@@ -795,7 +795,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           )}
 
           <div className="px-5 py-4 bg-white">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Proceso automático ejecutado</p>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Proceso automático ejecutado</p>
             <div className="relative">
               <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
               <div className="space-y-4">
@@ -860,7 +860,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                       { label: "N° serie", value: verification.confirmedDocumentNumber ?? extracted?.documentNumber },
                     ].filter(f => f.value).map(({ label, value }) => (
                       <div key={label} className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-                        <p className="text-[9px] text-white/70 font-semibold uppercase tracking-wider">{label}</p>
+                        <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wider">{label}</p>
                         <p className="text-xs font-bold text-white font-mono">{value}</p>
                       </div>
                     ))}
@@ -873,7 +873,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           {/* Confirmed data rows */}
           {verification.valid && extracted && (
             <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100">
-              <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest mb-3">
+              <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest mb-3">
                 Datos confirmados por Registro Civil
               </p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -888,7 +888,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
                       <Check className="w-2.5 h-2.5 text-emerald-700" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
+                      <p className="text-[11px] text-emerald-600 font-semibold uppercase tracking-wider">{label}</p>
                       <p className="text-xs font-bold text-emerald-900 truncate">{value}</p>
                     </div>
                   </div>
@@ -899,7 +899,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
           {/* Process timeline */}
           <div className="px-5 py-4 bg-white">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
               Proceso automático ejecutado
             </p>
             <div className="relative">

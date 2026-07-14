@@ -273,7 +273,7 @@ export function ReportesDashboard({ data, generadoEn }: Props) {
                           {p.client && (
                             <span className="text-xs text-muted-foreground hidden sm:inline">· {p.client}</span>
                           )}
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${sc.color}`}>
+                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded border ${sc.color}`}>
                             {sc.label}
                           </span>
                         </div>

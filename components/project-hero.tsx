@@ -110,7 +110,7 @@ export function ProjectHero({
                 <span className="text-sm font-black text-foreground tabular-nums">
                   <CountUp value={progress} suffix="%" duration={1.1} />
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">avance</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">avance</span>
               </motion.div>
             </div>
 
@@ -132,7 +132,7 @@ export function ProjectHero({
                     <p className="text-lg font-black text-foreground leading-none">
                       <CountUp value={coverage!.cubiertos} /><span className="text-muted-foreground font-bold text-sm">/{coverage!.requeridos}</span>
                     </p>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-1">Cobertura semana</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-1">Cobertura semana</p>
                   </div>
                 </div>
               )}

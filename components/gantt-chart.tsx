@@ -235,12 +235,12 @@ export function GanttChart({ weekPlans }: Props) {
                     onClick={() => toggleWeek(wp.weekNumber)}
                   >
                     <p className="text-xs font-bold text-foreground">S{wp.weekNumber}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
                       {formatWeekRange(wp.startDate, wp.endDate)}
                     </p>
                     <div className="mt-1.5 flex items-center justify-center gap-1">
                       <Users className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[10px] font-semibold text-foreground">{weekTotal}</span>
+                      <span className="text-[11px] font-semibold text-foreground">{weekTotal}</span>
                     </div>
                   </button>
                 );
@@ -250,7 +250,7 @@ export function GanttChart({ weekPlans }: Props) {
             {/* Headcount bar row */}
             <div className="flex border-b bg-background">
               <div className="w-44 flex-shrink-0 px-4 py-2 border-r flex items-center">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Dotación {hasActiveFilters ? "filtrada" : "total"}
                 </span>
               </div>
@@ -275,7 +275,7 @@ export function GanttChart({ weekPlans }: Props) {
                         }}
                       />
                     </div>
-                    <p className="text-[10px] text-center font-medium text-foreground">{total}</p>
+                    <p className="text-[11px] text-center font-medium text-foreground">{total}</p>
                   </div>
                 );
               })}
@@ -291,7 +291,7 @@ export function GanttChart({ weekPlans }: Props) {
                   {showCategoryDivider && (
                     <div className="flex border-b bg-muted/20">
                       <div className="w-44 flex-shrink-0 px-4 py-1 border-r">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                           {categoryLabel[role.category]}
                         </span>
                       </div>
@@ -439,7 +439,7 @@ export function GanttChart({ weekPlans }: Props) {
             {/* Curva del cargo a lo largo de las semanas filtradas */}
             <div className="rounded-lg bg-muted/40 px-3 pt-3 pb-2 mb-4">
               <DotacionSparkline data={roleWeeklyData} height={64} color={selectedRole.color} />
-              <div className="flex justify-between text-[10px] text-muted-foreground px-1 mt-1">
+              <div className="flex justify-between text-[11px] text-muted-foreground px-1 mt-1">
                 <span>{roleWeeklyData[0] ? `S${roleWeeklyData[0].weekNumber}` : ""}</span>
                 {roleMaxWeek && roleMaxWeek.total > 0 && (
                   <span className="font-medium text-foreground">
@@ -459,7 +459,7 @@ export function GanttChart({ weekPlans }: Props) {
                     w.total > 0 ? "bg-background" : "bg-muted/30 border-dashed"
                   }`}
                 >
-                  <span className="text-[10px] text-muted-foreground">S{w.weekNumber}</span>
+                  <span className="text-[11px] text-muted-foreground">S{w.weekNumber}</span>
                   <span
                     className="text-sm font-bold"
                     style={{ color: w.total > 0 ? selectedRole.color : undefined }}

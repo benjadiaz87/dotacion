@@ -171,7 +171,7 @@ export function TorreControl({
                 <p className="text-xl font-black text-foreground leading-none">
                   <CountUp value={k.value} suffix={k.suffix ?? ""} duration={1.1} />
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-1">{k.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{k.label}</p>
               </div>
             </div>
           </StaggerItem>
@@ -193,19 +193,19 @@ export function TorreControl({
             {weekFilter !== null && (
               <button
                 onClick={() => setWeekFilter(null)}
-                className="flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 rounded-full px-2.5 py-1 hover:bg-primary/15 transition-colors"
+                className="flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2.5 py-1 hover:bg-primary/15 transition-colors"
               >
                 Filtrando S{weeksData[weekFilter].weekNumber} <X className="w-3 h-3" />
               </button>
             )}
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded bg-violet-500 inline-block" /> Requeridos</span>
               <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded bg-amber-500 inline-block" /> Asignados</span>
               <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded bg-emerald-500 inline-block" /> Habilitados</span>
             </div>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground mb-2">clic en un punto para filtrar la matriz por esa semana</p>
+        <p className="text-[11px] text-muted-foreground mb-2">clic en un punto para filtrar la matriz por esa semana</p>
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -259,7 +259,7 @@ export function TorreControl({
 
       {/* Semáforo de semanas */}
       <div className="bg-background rounded-2xl border shadow-sm p-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
           Cobertura habilitada por semana
         </p>
         <div className="flex gap-1 overflow-x-auto pb-1">
@@ -274,7 +274,7 @@ export function TorreControl({
                 onClick={() => setWeekFilter((f) => (f === i ? null : i))}
                 className={`flex flex-col items-center gap-1 min-w-11 ${isPast ? "opacity-35" : ""}`}
               >
-                <span className={`text-[9px] font-bold ${isCurrent || weekFilter === i ? "text-primary" : "text-muted-foreground"}`}>
+                <span className={`text-[11px] font-bold ${isCurrent || weekFilter === i ? "text-primary" : "text-muted-foreground"}`}>
                   S{w.weekNumber}
                 </span>
                 <div
@@ -283,7 +283,7 @@ export function TorreControl({
                   } ${weekFilter === i ? "ring-2 ring-primary ring-offset-2" : ""}`}
                   title={`Semana ${w.weekNumber}: ${pct}% cubierta con habilitados`}
                 >
-                  <span className="text-[9px] font-black text-white">{pct}%</span>
+                  <span className="text-[11px] font-black text-white">{pct}%</span>
                 </div>
               </button>
             );
@@ -301,15 +301,15 @@ export function TorreControl({
                 <span className="text-primary font-black"> — S{weeksData[weekFilter].weekNumber}</span>
               )}
             </p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">habilitados / requeridos — clic en celda roja para cubrir</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">habilitados / requeridos — clic en celda roja para cubrir</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full border-separate" style={{ borderSpacing: "2px" }}>
               <thead>
                 <tr>
-                  <th className="text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-2 sticky left-0 bg-background z-10 min-w-36">Cargo</th>
+                  <th className="text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-2 sticky left-0 bg-background z-10 min-w-36">Cargo</th>
                   {visibleWeeks.map(({ w, i }) => (
-                    <th key={w.weekNumber} className={`text-[9px] font-bold px-1 min-w-11 ${i === currentIdx ? "text-primary" : i < currentIdx ? "text-muted-foreground/40" : "text-muted-foreground"}`}>
+                    <th key={w.weekNumber} className={`text-[11px] font-bold px-1 min-w-11 ${i === currentIdx ? "text-primary" : i < currentIdx ? "text-muted-foreground/40" : "text-muted-foreground"}`}>
                       S{w.weekNumber}
                     </th>
                   ))}
@@ -328,7 +328,7 @@ export function TorreControl({
                       const cell = cellData(c.roleId, w);
                       const isPast = i < currentIdx;
                       if (!cell) {
-                        return <td key={w.weekNumber} className="text-center"><span className="text-[10px] text-muted-foreground/20">·</span></td>;
+                        return <td key={w.weekNumber} className="text-center"><span className="text-[11px] text-muted-foreground/20">·</span></td>;
                       }
                       const deficit = cell.needed - cell.hab;
                       const full = deficit <= 0;
@@ -340,7 +340,7 @@ export function TorreControl({
                           <button
                             disabled={!clickable}
                             onClick={() => clickable && setSel(isSel ? null : { weekIdx: i, roleId: c.roleId, roleName: c.roleName, deficit })}
-                            className={`w-full h-8 rounded-md text-[10px] font-bold transition-all ${isPast ? "opacity-35" : ""} ${
+                            className={`w-full h-8 rounded-md text-[11px] font-bold transition-all ${isPast ? "opacity-35" : ""} ${
                               full ? "bg-emerald-100 text-emerald-800" :
                               zero ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"
                             } ${clickable ? "hover:ring-2 hover:ring-primary/40 cursor-pointer" : "cursor-default"} ${isSel ? "ring-2 ring-primary" : ""}`}
@@ -395,7 +395,7 @@ export function TorreControl({
                             <Link href={`/dashboard/trabajadores/${cand.id}`} className="text-xs font-semibold text-foreground truncate hover:text-primary transition-colors block">
                               {cand.fullName}
                             </Link>
-                            <p className="text-[10px] text-muted-foreground truncate">
+                            <p className="text-[11px] text-muted-foreground truncate">
                               {cand.roleName ?? "Sin cargo"}{cand.match ? " · cargo exacto" : " · otro cargo"}
                             </p>
                           </div>
@@ -444,7 +444,7 @@ export function TorreControl({
           <div className="bg-background rounded-2xl border shadow-sm p-4">
             <p className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
               <LogOut className="w-4 h-4 text-amber-500" /> Próximas salidas
-              <span className="text-[10px] text-muted-foreground font-normal">(ventana 3 semanas)</span>
+              <span className="text-[11px] text-muted-foreground font-normal">(ventana 3 semanas)</span>
             </p>
             {salidas.length === 0 ? (
               <p className="text-xs text-muted-foreground italic">Sin salidas programadas en la ventana.</p>
@@ -459,16 +459,16 @@ export function TorreControl({
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: sal.roleColor }} />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">{sal.fullName}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{sal.roleName}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{sal.roleName}</p>
                     </div>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 flex-shrink-0">
+                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 flex-shrink-0">
                       sale S{sal.lastWeek}
                     </span>
                     <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                   </Link>
                 ))}
                 {salidas.length > 8 && (
-                  <p className="text-[10px] text-muted-foreground text-center pt-1">+{salidas.length - 8} más</p>
+                  <p className="text-[11px] text-muted-foreground text-center pt-1">+{salidas.length - 8} más</p>
                 )}
               </div>
             )}

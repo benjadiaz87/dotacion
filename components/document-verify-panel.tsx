@@ -225,7 +225,7 @@ export function DocumentVerifyPanel({
 
               <div className="flex items-center gap-2">
                 <div className="h-px flex-1 bg-border" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">o verifica manualmente</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-widest">o verifica manualmente</span>
                 <div className="h-px flex-1 bg-border" />
               </div>
             </div>
@@ -270,7 +270,7 @@ export function DocumentVerifyPanel({
                 ].filter((f) => f.value).map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between gap-2 p-3 rounded-lg bg-background border">
                     <div>
-                      <p className="text-[10px] text-muted-foreground">{label}</p>
+                      <p className="text-[11px] text-muted-foreground">{label}</p>
                       <p className="text-sm font-mono font-semibold">{value}</p>
                     </div>
                     <CopyButton value={value} label="Copiar" />

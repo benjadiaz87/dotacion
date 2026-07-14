@@ -121,7 +121,7 @@ export function CommandPalette() {
                 className="flex-1 h-13 py-4 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/60"
                 aria-label="Búsqueda global"
               />
-              <kbd className="text-[10px] font-semibold text-muted-foreground bg-muted rounded px-1.5 py-0.5 flex-shrink-0">ESC</kbd>
+              <kbd className="text-[11px] font-semibold text-muted-foreground bg-muted rounded px-1.5 py-0.5 flex-shrink-0">ESC</kbd>
             </div>
 
             {/* Results */}
@@ -134,7 +134,7 @@ export function CommandPalette() {
                 <>
                   {workerItems.length > 0 && (
                     <>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pt-2 pb-1">Trabajadores</p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-3 pt-2 pb-1">Trabajadores</p>
                       {workerItems.map((item) => {
                         const idx = items.indexOf(item);
                         return (
@@ -165,7 +165,7 @@ export function CommandPalette() {
                   )}
                   {projectItems.length > 0 && (
                     <>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Proyectos</p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Proyectos</p>
                       {projectItems.map((item) => {
                         const idx = items.indexOf(item);
                         return (
@@ -196,10 +196,10 @@ export function CommandPalette() {
 
             {/* Footer hint */}
             <div className="flex items-center gap-4 px-4 py-2 border-t bg-muted/40">
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <kbd className="bg-background border rounded px-1 py-0.5 font-semibold">↑↓</kbd> navegar
               </span>
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <kbd className="bg-background border rounded px-1 py-0.5 font-semibold">↵</kbd> abrir
               </span>
             </div>

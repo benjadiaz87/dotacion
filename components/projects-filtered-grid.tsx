@@ -247,7 +247,7 @@ export function ProjectsFilteredGrid({ projects, coverage = {} }: Props) {
                       {/* Curva de dotación */}
                       <div className="rounded-xl bg-muted/40 px-2 pt-2 pb-1 border border-border/50">
                         <DotacionSparkline data={sparkData} height={52} />
-                        <div className="flex justify-between text-[10px] text-muted-foreground px-1 mt-0.5">
+                        <div className="flex justify-between text-[11px] text-muted-foreground px-1 mt-0.5">
                           <span>S1</span>
                           <span className="font-medium text-foreground">
                             {headcount.toLocaleString("es-CL")} personas totales

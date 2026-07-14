@@ -134,7 +134,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/25">
                   <Users className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
               </div>
               <p className="text-4xl font-black text-foreground">
                 <CountUp value={pipelineStats.total} />
@@ -149,7 +149,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Habilitados</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600">Habilitados</span>
               </div>
               <p className="text-4xl font-black text-emerald-700">
                 <CountUp value={pipelineStats.habilitados} />
@@ -164,7 +164,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/25">
                   <Clock className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Proceso</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Proceso</span>
               </div>
               <p className="text-4xl font-black text-foreground">
                 <CountUp value={enProceso} />
@@ -182,7 +182,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
               return (
                 <div className="card-premium card-lift rounded-2xl p-6 h-full relative overflow-hidden">
                   <div className="flex items-start justify-between mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cobertura dotación</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Cobertura dotación</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="relative flex-shrink-0">
@@ -236,7 +236,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                     <div key={s.order}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${c.bg} ${c.text}`}>
+                          <span className={`text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${c.bg} ${c.text}`}>
                             {s.order}
                           </span>
                           <span className="text-xs text-foreground font-medium truncate max-w-[150px]">{s.name}</span>
@@ -263,13 +263,13 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                   <p className="text-xl font-black text-foreground">
                     <CountUp value={tasaHabilitacion} suffix="%" />
                   </p>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Tasa habilitación</p>
+                  <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Tasa habilitación</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl font-black text-foreground">
                     <CountUp value={companyStats.poolDisponible} />
                   </p>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Pool disponible</p>
+                  <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Pool disponible</p>
                 </div>
               </div>
             </div>
@@ -328,7 +328,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                                     style={{ width: `${Math.min(covPct, 100)}%` }}
                                   />
                                 </div>
-                                <span className={`text-[10px] font-bold ${
+                                <span className={`text-[11px] font-bold ${
                                   covPct >= 90 ? "text-emerald-700" : covPct >= 70 ? "text-amber-700" : "text-red-700"
                                 }`}>
                                   {bd!.cubiertos}/{bd!.requeridos} dotación
@@ -339,7 +339,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                           <div className="flex items-center gap-3 flex-shrink-0">
                             <div className="text-right">
                               <p className="text-xs font-semibold text-foreground">{p.weeks} sem.</p>
-                              <p className="text-[10px] text-muted-foreground">duración</p>
+                              <p className="text-[11px] text-muted-foreground">duración</p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                           </div>
@@ -376,7 +376,7 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
                   <Link key={p.projectId} href={`/dashboard/proyectos/${p.projectId}`}>
                     <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-red-200 bg-white text-red-700 hover:bg-red-100 hover:scale-105 transition-all font-medium">
                       {p.projectName}
-                      <span className="bg-red-100 text-red-700 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{p.vacantes}</span>
+                      <span className="bg-red-100 text-red-700 rounded-full px-1.5 py-0.5 text-[11px] font-bold">{p.vacantes}</span>
                     </span>
                   </Link>
                 ))}

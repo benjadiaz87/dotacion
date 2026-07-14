@@ -219,7 +219,7 @@ export function AccesoView({ users }: { users: PlatformUser[] }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-sm text-foreground truncate">{u.name}</p>
                       {u.isSelf && (
-                        <span className="text-[9px] font-bold uppercase tracking-widest bg-muted text-muted-foreground px-1.5 py-0.5 rounded">tú</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest bg-muted text-muted-foreground px-1.5 py-0.5 rounded">tú</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>

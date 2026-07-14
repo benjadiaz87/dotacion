@@ -82,7 +82,7 @@ export function Sidebar({ user, alertasCriticas = 0 }: SidebarProps) {
         >
           <SearchIcon className="w-3.5 h-3.5" />
           <span className="flex-1 text-left text-xs">Buscar…</span>
-          <kbd className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>⌘K</kbd>
+          <kbd className="text-[11px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>⌘K</kbd>
         </button>
       </div>
 
@@ -116,12 +116,12 @@ export function Sidebar({ user, alertasCriticas = 0 }: SidebarProps) {
               <Icon className={cn("w-4 h-4 flex-shrink-0 relative z-10", active ? "text-primary" : "opacity-70 group-hover:opacity-100 transition-opacity")} />
               <span className="flex-1 relative z-10">{label}</span>
               {badge && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded relative z-10" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
+                <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded relative z-10" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
                   {badge}
                 </span>
               )}
               {href === "/dashboard/alertas" && alertasCriticas > 0 && (
-                <span className="relative z-10 min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">
+                <span className="relative z-10 min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center animate-pulse">
                   {alertasCriticas}
                 </span>
               )}

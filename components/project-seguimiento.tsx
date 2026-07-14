@@ -43,7 +43,7 @@ function CargoRow({ row, stagesTotal }: { row: SeguimientoRow; stagesTotal: numb
           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: row.roleColor }} />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{row.roleName}</p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {row.total} asignado{row.total !== 1 ? "s" : ""}{row.requeridos > 0 ? ` · req. ${row.requeridos}` : ""}
             </p>
           </div>
@@ -96,14 +96,14 @@ function CargoRow({ row, stagesTotal }: { row: SeguimientoRow; stagesTotal: numb
         {/* Alerta */}
         <div className="min-w-0">
           {row.alerta ? (
-            <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-full border truncate max-w-full ${
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full border truncate max-w-full ${
               row.total === 0 ? "bg-red-50 border-red-200 text-red-700" : "bg-amber-50 border-amber-200 text-amber-700"
             }`}>
               <AlertTriangle className="w-3 h-3 flex-shrink-0" />
               <span className="truncate">{row.alerta}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
               <Check className="w-3 h-3" /> OK
             </span>
           )}
@@ -135,13 +135,13 @@ function CargoRow({ row, stagesTotal }: { row: SeguimientoRow; stagesTotal: numb
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${col.soft}`}>
                         {w.habilitado
                           ? <Trophy className={`w-3.5 h-3.5 ${col.text}`} />
-                          : <span className={`text-[10px] font-black ${col.text}`}>{w.stageOrder}</span>}
+                          : <span className={`text-[11px] font-black ${col.text}`}>{w.stageOrder}</span>}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">{w.fullName}</p>
-                        <p className="text-[10px] text-muted-foreground">{w.rut}</p>
+                        <p className="text-[11px] text-muted-foreground">{w.rut}</p>
                       </div>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${col.text}`}>
+                      <span className={`text-[11px] font-bold uppercase tracking-wider flex-shrink-0 ${col.text}`}>
                         {w.habilitado ? "Habilitado" : `Etapa ${w.stageOrder}`}
                       </span>
                     </Link>
@@ -197,7 +197,7 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
                   <CountUp value={k.value} duration={1.1} />
                   {k.suffix && <span className="text-xs font-bold text-muted-foreground">{k.suffix}</span>}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-1 truncate">{k.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 truncate">{k.label}</p>
               </div>
             </div>
           </StaggerItem>
@@ -222,7 +222,7 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
             >
               <div className="flex items-center gap-1.5">
                 <Icon className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
-                <span className="text-[10px] font-bold uppercase tracking-wide leading-tight truncate max-w-[90px]">
+                <span className="text-[11px] font-bold uppercase tracking-wide leading-tight truncate max-w-[90px]">
                   {stage.name}
                 </span>
               </div>
@@ -230,7 +230,7 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
                 <CountUp value={data.stageTotals[i]} duration={1} />
               </span>
               {dispCount > 0 && (
-                <span className="text-[8px] font-semibold text-white/70 leading-none">+{dispCount} disp.</span>
+                <span className="text-[11px] font-semibold text-white/70 leading-none">+{dispCount} disp.</span>
               )}
             </button>
           );
@@ -251,13 +251,13 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
             >
               <div className="flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
-                <span className="text-[10px] font-bold uppercase tracking-wide leading-tight">Habilitados</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide leading-tight">Habilitados</span>
               </div>
               <span className="text-lg font-black leading-none">
                 <CountUp value={data.habilitadosTotal} duration={1} />
               </span>
               {dispCount > 0 && (
-                <span className="text-[8px] font-semibold text-white/70 leading-none">+{dispCount} disp.</span>
+                <span className="text-[11px] font-semibold text-white/70 leading-none">+{dispCount} disp.</span>
               )}
             </button>
           );
@@ -306,11 +306,11 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${col.soft}`}>
                             {w.habilitado
                               ? <Trophy className={`w-3.5 h-3.5 ${col.text}`} />
-                              : <span className={`text-[10px] font-black ${col.text}`}>{w.stageOrder}</span>}
+                              : <span className={`text-[11px] font-black ${col.text}`}>{w.stageOrder}</span>}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">{w.fullName}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">
+                            <p className="text-[11px] text-muted-foreground truncate">
                               {w.rut}{w.roleName ? ` · ${w.roleName}` : ""}
                             </p>
                           </div>
@@ -338,7 +338,7 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
       <div className="bg-background rounded-2xl border shadow-sm p-4">
         <div className="flex items-center justify-between mb-3 px-1">
           <p className="text-sm font-bold text-foreground">Seguimiento por cargo</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">clic en un cargo para ver las personas</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">clic en un cargo para ver las personas</p>
         </div>
 
         {/* Header de columnas */}
@@ -346,15 +346,15 @@ export function ProjectSeguimiento({ data }: { data: SeguimientoData }) {
           className="grid items-center gap-2 px-4 pb-2 border-b mb-2"
           style={{ gridTemplateColumns: `minmax(160px, 1.6fr) repeat(${stagesTotal + 1}, minmax(52px, 1fr)) minmax(90px, 1.2fr) minmax(120px, 1.4fr) 24px` }}
         >
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Cargo</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Cargo</span>
           {data.stages.map((s, i) => (
-            <span key={s.order} className={`text-[9px] font-bold uppercase tracking-widest text-center ${COL_COLORS[i].text}`} title={s.name}>
+            <span key={s.order} className={`text-[11px] font-bold uppercase tracking-widest text-center ${COL_COLORS[i].text}`} title={s.name}>
               E{s.order}
             </span>
           ))}
-          <span className={`text-[9px] font-bold uppercase tracking-widest text-center ${HAB_COLOR.text}`}>Hab.</span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">% Habilitados</span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Alerta</span>
+          <span className={`text-[11px] font-bold uppercase tracking-widest text-center ${HAB_COLOR.text}`}>Hab.</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">% Habilitados</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Alerta</span>
           <span />
         </div>
 
