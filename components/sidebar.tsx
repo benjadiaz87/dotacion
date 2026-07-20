@@ -17,6 +17,7 @@ import {
   Settings,
   Users,
   Bug,
+  Calculator,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const navItems: { href: string; label: string; icon: React.ElementType; disabled
   { href: "/dashboard/proyectos", label: "Proyectos", icon: FolderKanban },
   { href: "/dashboard/empleados", label: "Empleados", icon: Users },
   { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/dashboard/roi", label: "ROI", icon: Calculator },
   { href: "/dashboard/alertas", label: "Alertas", icon: Bell },
   { href: "/dashboard/features", label: "Features", icon: Lightbulb },
   { href: "/dashboard/bugs", label: "Bugs", icon: Bug },

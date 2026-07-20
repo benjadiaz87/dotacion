@@ -150,3 +150,29 @@ export async function getValidacionesHistorial(): Promise<ValidacionHistorial[]>
     uploadedAt: d.uploadedAt,
   }));
 }
+
+// ─── Línea base real para la calculadora de ROI ───────────────────────────────
+
+export type RoiBaseline = {
+  validacionesRealizadas: number;   // documentos ya validados automáticamente
+  trabajadores: number;             // dotación total en el sistema
+  // Supuestos por defecto (los mismos del panel), editables en la calculadora
+  minutosPorValidacionManual: number;
+  costoHoraCLP: number;
+  segundosPorValidacionDotia: number;
+};
+
+export async function getRoiBaseline(): Promise<RoiBaseline> {
+  await assertAuthenticated();
+  const [validacionesRealizadas, trabajadores] = await Promise.all([
+    db.workerDocument.count({ where: { extractedData: { not: null } } }),
+    db.worker.count(),
+  ]);
+  return {
+    validacionesRealizadas,
+    trabajadores,
+    minutosPorValidacionManual: MINUTOS_POR_VALIDACION_MANUAL,
+    costoHoraCLP: COSTO_HORA_ANALISTA_CLP,
+    segundosPorValidacionDotia: 8, // tiempo típico de la validación automática
+  };
+}
