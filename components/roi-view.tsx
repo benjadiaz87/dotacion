@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Clock, TrendingUp, Users, Calculator, Zap, RotateCcw } from "lucide-react";
+import { Sparkles, Clock, TrendingUp, Users, Calculator, Zap, RotateCcw, ShieldCheck } from "lucide-react";
 import type { RoiBaseline } from "@/lib/actions/ejecutivo";
 
 function fmtCLP(n: number): string {
@@ -10,6 +10,12 @@ function fmtCLP(n: number): string {
 }
 function fmtNum(n: number): string {
   return Math.round(n).toLocaleString("es-CL");
+}
+// Compacto para los números destacados del hero (evita que se desborden)
+function fmtCLPCompacto(n: number): string {
+  if (n >= 1_000_000_000) return "$" + (n / 1_000_000_000).toFixed(1).replace(".", ",") + "MM";
+  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(1).replace(".", ",") + "M";
+  return "$" + Math.round(n).toLocaleString("es-CL");
 }
 
 // Campo numérico editable (para ajustar supuestos en vivo durante la demo)
@@ -44,6 +50,12 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
   const [renovacionesAnio, setRenovacionesAnio] = useState(2); // docs que vencen y se revalidan al año
   const [minManual, setMinManual] = useState(baseline.minutosPorValidacionManual);
   const [costoHora, setCostoHora] = useState(baseline.costoHoraCLP);
+  // Multas por documentación vencida/faltante (Dirección del Trabajo, Sernageomin)
+  const [multasAnio, setMultasAnio] = useState(4);
+  const [costoMulta, setCostoMulta] = useState(1_500_000);
+  // Retraso de ingreso: días que un trabajador espera para entrar por validación lenta
+  const [diasRetraso, setDiasRetraso] = useState(2);
+  const [costoDiaRetraso, setCostoDiaRetraso] = useState(50_000);
 
   const calc = useMemo(() => {
     // Validaciones anuales = onboarding (1 set por trabajador) + renovaciones
@@ -55,10 +67,19 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
     const horasAhorradas = horasManual - horasDotia;
     const costoManual = horasManual * costoHora;
     const costoDotia = horasDotia * costoHora;
-    const ahorroCLP = costoManual - costoDotia;
     const reduccionPct = horasManual > 0 ? (horasAhorradas / horasManual) * 100 : 0;
-    return { validacionesAnio, horasManual, horasDotia, horasAhorradas, costoManual, costoDotia, ahorroCLP, reduccionPct };
-  }, [trabajadores, docsPorTrabajador, renovacionesAnio, minManual, costoHora, baseline.segundosPorValidacionDotia]);
+
+    // Tres fuentes de ahorro
+    const ahorroTiempo = costoManual - costoDotia;
+    const ahorroMultas = multasAnio * costoMulta;                       // multas evitadas
+    const ahorroRetraso = trabajadores * diasRetraso * costoDiaRetraso; // ingresos más rápidos
+    const ahorroCLP = ahorroTiempo + ahorroMultas + ahorroRetraso;
+
+    return {
+      validacionesAnio, horasManual, horasDotia, horasAhorradas, costoManual, costoDotia,
+      reduccionPct, ahorroTiempo, ahorroMultas, ahorroRetraso, ahorroCLP,
+    };
+  }, [trabajadores, docsPorTrabajador, renovacionesAnio, minManual, costoHora, multasAnio, costoMulta, diasRetraso, costoDiaRetraso, baseline.segundosPorValidacionDotia]);
 
   // Ahorro real ya generado (datos verdaderos del sistema)
   const ahorroRealHoras = (baseline.validacionesRealizadas * baseline.minutosPorValidacionManual) / 60;
@@ -68,6 +89,10 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
     setTrabajadores(Math.max(baseline.trabajadores, 100));
     setDocsPorTrabajador(6);
     setRenovacionesAnio(2);
+    setMultasAnio(4);
+    setCostoMulta(1_500_000);
+    setDiasRetraso(2);
+    setCostoDiaRetraso(50_000);
     setMinManual(baseline.minutosPorValidacionManual);
     setCostoHora(baseline.costoHoraCLP);
   }
@@ -107,26 +132,20 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-violet-400/10 rounded-full blur-3xl" />
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-widest text-violet-500 mb-1">Ahorro anual estimado</p>
-              <p className="text-5xl font-black text-violet-800 tabular-nums leading-none">{fmtCLP(calc.ahorroCLP)}</p>
-              <p className="text-sm text-violet-700 mt-2 font-semibold">
-                {fmtNum(calc.horasAhorradas)} horas-hombre al año
-              </p>
+              <p className="text-3xl md:text-4xl font-black text-violet-800 tabular-nums leading-none truncate">{fmtCLPCompacto(calc.ahorroCLP)}</p>
+              <p className="text-sm text-violet-700 mt-2 font-semibold">{fmtCLP(calc.ahorroCLP)} al año</p>
             </div>
-            <div className="md:border-l md:border-violet-200 md:pl-6">
+            <div className="min-w-0 md:border-l md:border-violet-200 md:pl-6">
               <p className="text-xs font-bold uppercase tracking-widest text-violet-500 mb-1">Reducción de tiempo</p>
-              <p className="text-5xl font-black text-violet-800 tabular-nums leading-none">{Math.round(calc.reduccionPct)}%</p>
-              <p className="text-sm text-violet-700 mt-2 font-semibold">
-                {fmtNum(calc.validacionesAnio)} validaciones al año
-              </p>
+              <p className="text-3xl md:text-4xl font-black text-violet-800 tabular-nums leading-none">{Math.round(calc.reduccionPct)}%</p>
+              <p className="text-sm text-violet-700 mt-2 font-semibold">{fmtNum(calc.validacionesAnio)} validaciones al año</p>
             </div>
-            <div className="md:border-l md:border-violet-200 md:pl-6">
+            <div className="min-w-0 md:border-l md:border-violet-200 md:pl-6">
               <p className="text-xs font-bold uppercase tracking-widest text-violet-500 mb-1">Ya ahorrado (real)</p>
-              <p className="text-5xl font-black text-violet-800 tabular-nums leading-none">{fmtNum(ahorroRealHoras)}<span className="text-2xl">h</span></p>
-              <p className="text-sm text-violet-700 mt-2 font-semibold">
-                {baseline.validacionesRealizadas} validaciones · ≈ {fmtCLP(ahorroRealCLP)}
-              </p>
+              <p className="text-3xl md:text-4xl font-black text-violet-800 tabular-nums leading-none">{fmtNum(ahorroRealHoras)}<span className="text-xl">h</span></p>
+              <p className="text-sm text-violet-700 mt-2 font-semibold">{baseline.validacionesRealizadas} validaciones · ≈ {fmtCLP(ahorroRealCLP)}</p>
             </div>
           </div>
         </motion.div>
@@ -162,6 +181,22 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
               label="Costo hora del analista"
               hint="Costo bruto por hora de quien hace la validación (sueldo + leyes sociales)."
               value={costoHora} onChange={setCostoHora} suffix="CLP" step={500} min={0} />
+            <Assumption
+              label="Multas al año"
+              hint="Multas que hoy recibes por documentación vencida o faltante (Dirección del Trabajo, Sernageomin). Dotia las evita al bloquear personal no habilitado."
+              value={multasAnio} onChange={setMultasAnio} suffix="/ año" min={0} />
+            <Assumption
+              label="Costo promedio por multa"
+              hint="Monto típico de cada multa por incumplimiento documental."
+              value={costoMulta} onChange={setCostoMulta} suffix="CLP" step={100000} min={0} />
+            <Assumption
+              label="Días de retraso por ingreso"
+              hint="Días que hoy espera cada trabajador para entrar a faena mientras se validan sus documentos a mano. Dotia lo hace en segundos."
+              value={diasRetraso} onChange={setDiasRetraso} suffix="días" min={0} />
+            <Assumption
+              label="Costo por día de retraso"
+              hint="Costo de tener un trabajador esperando ingresar (productividad perdida / cupo descubierto en faena)."
+              value={costoDiaRetraso} onChange={setCostoDiaRetraso} suffix="CLP" step={10000} min={0} />
           </div>
 
           {/* Comparación manual vs Dotia */}
@@ -197,8 +232,37 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
 
               <div className="pt-3 mt-3 border-t flex items-center justify-between">
                 <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-violet-500" /> Ahorro
+                  <Sparkles className="w-4 h-4 text-violet-500" /> Ahorro en tiempo
                 </span>
+                <span className="text-lg font-black text-violet-800 tabular-nums">{fmtCLP(calc.ahorroTiempo)}/año</span>
+              </div>
+            </div>
+
+            {/* Desglose de todas las fuentes de ahorro */}
+            <div className="mt-5 pt-4 border-t">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Desglose del ahorro anual</p>
+              <div className="space-y-2.5">
+                {[
+                  { label: "Tiempo de validación", icon: Clock, value: calc.ahorroTiempo },
+                  { label: "Multas evitadas", icon: ShieldCheck, value: calc.ahorroMultas },
+                  { label: "Ingresos más rápidos", icon: Zap, value: calc.ahorroRetraso },
+                ].map((r) => {
+                  const pct = calc.ahorroCLP > 0 ? (r.value / calc.ahorroCLP) * 100 : 0;
+                  return (
+                    <div key={r.label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1.5"><r.icon className="w-3.5 h-3.5" /> {r.label}</span>
+                        <span className="text-sm font-bold tabular-nums">{fmtCLP(r.value)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <motion.div className="h-full bg-violet-400 rounded-full" animate={{ width: `${Math.max(pct, 0)}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                <span className="text-sm font-bold text-foreground flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-violet-500" /> Ahorro total</span>
                 <span className="text-lg font-black text-violet-800 tabular-nums">{fmtCLP(calc.ahorroCLP)}/año</span>
               </div>
             </div>
@@ -222,7 +286,19 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
             </li>
             <li className="flex gap-2">
               <span className="text-violet-500 font-bold flex-shrink-0">·</span>
-              <span><strong className="text-foreground">Ahorro en dinero</strong> = (horas manuales − horas Dotia) × costo hora del analista.</span>
+              <span><strong className="text-foreground">Ahorro en tiempo</strong> = (horas manuales − horas Dotia) × costo hora del analista.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Multas evitadas</strong> = multas al año × costo promedio por multa. Dotia bloquea el ingreso de personal con documentos vencidos o faltantes, evitando el incumplimiento.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Ingresos más rápidos</strong> = trabajadores × días de retraso evitados × costo por día. La validación en segundos elimina la espera de ingreso a faena.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Ahorro total</strong> = ahorro en tiempo + multas evitadas + ingresos más rápidos.</span>
             </li>
             <li className="flex gap-2">
               <span className="text-violet-500 font-bold flex-shrink-0">·</span>
