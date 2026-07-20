@@ -20,6 +20,7 @@ import {
   Search,
   X,
   SlidersHorizontal,
+  Calculator,
 } from "lucide-react";
 import Link from "next/link";
 import { statusConfig } from "@/lib/project-utils";
@@ -101,11 +102,17 @@ export function ReportesDashboard({ data, generadoEn }: Props) {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Reportes</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Generado el {generadoEn}</p>
         </div>
+        <Link
+          href="/dashboard/roi"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border bg-background text-sm font-semibold text-violet-700 hover:bg-violet-50 hover:border-violet-200 transition-colors flex-shrink-0"
+        >
+          <Calculator className="w-4 h-4" /> Calculadora de ROI
+        </Link>
       </div>
 
       {/* KPIs ejecutivos — siempre globales */}
