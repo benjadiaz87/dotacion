@@ -137,20 +137,42 @@ export async function getAlertas(): Promise<AlertasData> {
     const limite = new Date(now + config.vencimientoDias * 24 * 60 * 60 * 1000);
     const docs = await db.workerDocument.findMany({
       where: { status: "APPROVED", expiresAt: { not: null, lte: limite } },
-      include: { worker: { select: { id: true, fullName: true, currentStageOrder: true } }, documentType: { select: { name: true } } },
+      include: {
+        worker: {
+          select: {
+            id: true, fullName: true, currentStageOrder: true,
+            // Cargo y faena donde hoy está asignado — para nombrar la consecuencia
+            assignments: {
+              select: { role: { select: { name: true } }, weekPlan: { select: { project: { select: { name: true } } } } },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+            },
+          },
+        },
+        documentType: { select: { name: true } },
+      },
       orderBy: { expiresAt: "asc" },
     });
     for (const d of docs) {
       const exp = d.expiresAt!;
       const vencido = exp.getTime() < now;
       const diasRestantes = Math.ceil((exp.getTime() - now) / (24 * 60 * 60 * 1000));
+      const asignacion = d.worker.assignments[0];
+      // Consecuencia de negocio: qué cargo/faena queda expuesto
+      const consecuencia = asignacion
+        ? `${asignacion.role.name} en ${asignacion.weekPlan.project.name}`
+        : null;
       alertas.push({
         id: `venc-${d.id}`,
         tipo: "vencimiento",
         severidad: vencido ? "critica" : "advertencia",
         titulo: vencido
-          ? `${d.worker.fullName} quedó deshabilitado — documento vencido`
-          : `Documento de ${d.worker.fullName} vence en ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""}`,
+          ? consecuencia
+            ? `${d.worker.fullName} quedó deshabilitado → ${consecuencia} descubierto`
+            : `${d.worker.fullName} quedó deshabilitado — documento vencido`
+          : consecuencia
+            ? `${d.worker.fullName} pierde habilitación en ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""} → riesgo en ${consecuencia}`
+            : `Documento de ${d.worker.fullName} vence en ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""}`,
         detalle: `${d.documentType.name} — ${vencido ? `venció el ${exp.toLocaleDateString("es-CL")}` : `vence el ${exp.toLocaleDateString("es-CL")}`}`,
         accion: vencido ? "Renovar o reemplazar" : "Renovar documento",
         href: `/dashboard/trabajadores/${d.worker.id}`,
