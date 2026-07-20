@@ -13,13 +13,16 @@ function fmtNum(n: number): string {
 }
 
 // Campo numérico editable (para ajustar supuestos en vivo durante la demo)
-function Assumption({ label, value, onChange, suffix, step = 1, min = 0 }: {
-  label: string; value: number; onChange: (v: number) => void; suffix?: string; step?: number; min?: number;
+function Assumption({ label, hint, value, onChange, suffix, step = 1, min = 0 }: {
+  label: string; hint: string; value: number; onChange: (v: number) => void; suffix?: string; step?: number; min?: number;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/60 last:border-0">
-      <label className="text-sm text-muted-foreground">{label}</label>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+    <div className="flex items-start justify-between gap-3 py-3 border-b border-border/60 last:border-0">
+      <div className="flex-1 min-w-0">
+        <label className="text-sm font-medium text-foreground">{label}</label>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{hint}</p>
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
         <input
           type="number"
           value={value}
@@ -139,11 +142,26 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
                 <RotateCcw className="w-3 h-3" /> Reiniciar
               </button>
             </div>
-            <Assumption label="Trabajadores en dotación" value={trabajadores} onChange={setTrabajadores} step={50} min={1} />
-            <Assumption label="Documentos por trabajador" value={docsPorTrabajador} onChange={setDocsPorTrabajador} suffix="docs" min={1} />
-            <Assumption label="Renovaciones al año" value={renovacionesAnio} onChange={setRenovacionesAnio} suffix="/ año" min={0} />
-            <Assumption label="Minutos por validación manual" value={minManual} onChange={setMinManual} suffix="min" min={1} />
-            <Assumption label="Costo hora del analista" value={costoHora} onChange={setCostoHora} suffix="CLP" step={500} min={0} />
+            <Assumption
+              label="Trabajadores en dotación"
+              hint="Cantidad total de personas cuya documentación gestionas al año."
+              value={trabajadores} onChange={setTrabajadores} step={50} min={1} />
+            <Assumption
+              label="Documentos por trabajador"
+              hint="Documentos que se validan al ingresar a cada persona (cédula, antecedentes, licencia, hoja de vida, credenciales…)."
+              value={docsPorTrabajador} onChange={setDocsPorTrabajador} suffix="docs" min={1} />
+            <Assumption
+              label="Renovaciones al año"
+              hint="Documentos por persona que vencen y deben volver a validarse cada año (ej. antecedentes, exámenes, credenciales)."
+              value={renovacionesAnio} onChange={setRenovacionesAnio} suffix="/ año" min={0} />
+            <Assumption
+              label="Minutos por validación manual"
+              hint="Tiempo que hoy toma descargar, leer y contrastar un documento a mano contra el Registro Civil."
+              value={minManual} onChange={setMinManual} suffix="min" min={1} />
+            <Assumption
+              label="Costo hora del analista"
+              hint="Costo bruto por hora de quien hace la validación (sueldo + leyes sociales)."
+              value={costoHora} onChange={setCostoHora} suffix="CLP" step={500} min={0} />
           </div>
 
           {/* Comparación manual vs Dotia */}
@@ -187,10 +205,36 @@ export function RoiView({ baseline }: { baseline: RoiBaseline }) {
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center">
-          Cálculo referencial basado en los supuestos ingresados. La validación automática de Dotia
-          (extracción con IA + verificación en Registro Civil) toma ≈{baseline.segundosPorValidacionDotia} segundos por documento.
-        </p>
+        {/* Supuestos y metodología — transparencia del cálculo */}
+        <div className="card-premium rounded-2xl p-6">
+          <p className="font-bold text-foreground flex items-center gap-2 mb-3">
+            <Calculator className="w-4 h-4 text-violet-500" /> Cómo se calcula
+          </p>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Validaciones al año</strong> = trabajadores × documentos por trabajador (ingreso) + trabajadores × renovaciones al año.
+                Con los valores actuales: <strong className="text-foreground tabular-nums">{fmtNum(calc.validacionesAnio)}</strong> validaciones/año.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Tiempo manual</strong> = validaciones × minutos por validación manual. <strong className="text-foreground">Tiempo con Dotia</strong> = validaciones × ≈{baseline.segundosPorValidacionDotia} segundos (extracción con IA + verificación en Registro Civil).</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Ahorro en dinero</strong> = (horas manuales − horas Dotia) × costo hora del analista.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-violet-500 font-bold flex-shrink-0">·</span>
+              <span><strong className="text-foreground">Ya ahorrado (real)</strong> se calcula con las <strong className="text-foreground tabular-nums">{baseline.validacionesRealizadas}</strong> validaciones automáticas efectivamente realizadas en la plataforma, no con proyecciones.</span>
+            </li>
+          </ul>
+          <p className="text-xs text-muted-foreground mt-4 pt-3 border-t leading-relaxed">
+            <strong className="text-foreground">Supuestos por defecto</strong> (editables arriba): {baseline.minutosPorValidacionManual} min por validación manual,
+            {" "}{fmtCLP(baseline.costoHoraCLP)} costo hora del analista, ≈{baseline.segundosPorValidacionDotia} segundos por validación automática.
+            El cálculo es referencial y considera solo el tiempo de validación documental — no incluye otros ahorros como evitar paros de faena o multas por documentos vencidos.
+          </p>
+        </div>
       </div>
     </>
   );
