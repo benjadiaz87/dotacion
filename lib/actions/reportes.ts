@@ -2,7 +2,7 @@
 import { assertAuthenticated } from "@/lib/authz";
 
 import { db } from "@/lib/db";
-import { computeSemaphore, computeRoleFillSplit, type DocSemaphore } from "@/lib/project-utils";
+import { computeRoleFillSplit, type DocSemaphore } from "@/lib/project-utils";
 
 export type ProyectoCobertura = {
   id: string;
@@ -70,21 +70,25 @@ export async function getReportesData(): Promise<ReportesData> {
     db.worker.findMany({ include: { documents: true, assignments: true } }),
   ]);
 
-  // Helper: is worker habilitado
-  function isHabilitado(workerDocs: { documentTypeId: string; status: string }[]): boolean {
-    if (requiredTypes.length === 0) return true;
-    return requiredTypes.every((t) =>
-      workerDocs.some((d) => d.documentTypeId === t.id && d.status === "APPROVED")
-    );
-  }
+  // Habilitado = superó todas las etapas del pipeline (mismo criterio que el
+  // resto de la app: dashboard, empleados, torre). Antes se contaban documentos
+  // aprobados, lo que daba números distintos entre pantallas.
+  const stagesTotal = await db.stage.count();
+  const habilitadoById = new Map(allWorkers.map((w) => [w.id, w.currentStageOrder > stagesTotal]));
+  const isHabilitado = (workerId: string): boolean => habilitadoById.get(workerId) ?? false;
 
-  // Semaphore stats across all workers
+  // Semáforo por avance de pipeline (mismo criterio que Empleados):
+  // verde = habilitado, amarillo = en proceso, rojo = sin iniciar.
   const semaphoreStats: SemaphoreStats = { green: 0, yellow: 0, red: 0, total: allWorkers.length };
   for (const w of allWorkers) {
     const approved = requiredTypes.filter((t) =>
       w.documents.some((d) => d.documentTypeId === t.id && d.status === "APPROVED")
     ).length;
-    const s = computeSemaphore(requiredTypes.length, approved);
+    const s: keyof Omit<SemaphoreStats, "total"> = habilitadoById.get(w.id)
+      ? "green"
+      : w.currentStageOrder > 1 || approved > 0
+      ? "yellow"
+      : "red";
     semaphoreStats[s]++;
   }
 
@@ -93,7 +97,7 @@ export async function getReportesData(): Promise<ReportesData> {
     projects.flatMap((p) => p.weekPlans.flatMap((wp) => wp.assignments.map((a) => a.workerId)))
   );
   const poolDisponible = allWorkers.filter(
-    (w) => !assignedWorkerIds.has(w.id) && isHabilitado(w.documents)
+    (w) => !assignedWorkerIds.has(w.id) && isHabilitado(w.id)
   ).length;
 
   // Rotación 30 días
@@ -127,8 +131,7 @@ export async function getReportesData(): Promise<ReportesData> {
     const workerHabMap = new Map<string, boolean>();
     const allProjectWorkerIds = new Set(project.weekPlans.flatMap((wp) => wp.assignments.map((a) => a.workerId)));
     for (const wid of allProjectWorkerIds) {
-      const worker = allWorkers.find((w) => w.id === wid);
-      workerHabMap.set(wid, worker ? isHabilitado(worker.documents) : false);
+      workerHabMap.set(wid, isHabilitado(wid));
     }
 
     // Find current week

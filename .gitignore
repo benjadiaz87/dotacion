@@ -50,3 +50,6 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 /storage/
+
+# Artefacto espurio de preview_start
+3005
