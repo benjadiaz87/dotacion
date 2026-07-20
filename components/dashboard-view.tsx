@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { CountUp, Stagger, StaggerItem, FadeUp, GrowBar } from "@/components/motion-primitives";
+import { PanelEjecutivo } from "@/components/panel-ejecutivo";
+import type { EjecutivoStats } from "@/lib/actions/ejecutivo";
 import { CoverageRing } from "@/components/brand-mark";
 import {
   AlertTriangle, ArrowRight, CheckCircle2, Clock,
@@ -38,9 +40,10 @@ type Props = {
       requeridos: number; cubiertos: number;
     }[];
   };
+  ejecutivoStats: EjecutivoStats;
 };
 
-export function DashboardView({ userName, greeting, projects, pipelineStats, companyStats, canWrite = true }: Props & { canWrite?: boolean }) {
+export function DashboardView({ userName, greeting, projects, pipelineStats, companyStats, ejecutivoStats, canWrite = true }: Props & { canWrite?: boolean }) {
   const active = projects.filter((p) => p.status === "ACTIVE");
   const enProceso = pipelineStats.total - pipelineStats.habilitados;
   const maxCount = Math.max(...pipelineStats.byStage.map((s) => s.count), 1);
@@ -101,6 +104,9 @@ export function DashboardView({ userName, greeting, projects, pipelineStats, com
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+        {/* ── Panel ejecutivo: los 3 números que le importan a quien decide ── */}
+        <PanelEjecutivo stats={ejecutivoStats} />
 
         {/* ── Bandeja de revisión (loop del portal de trabajadores) ─────────── */}
         {pipelineStats.pendingReview.docsCount > 0 && (

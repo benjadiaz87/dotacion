@@ -1,14 +1,16 @@
 import { getProjects } from "@/lib/actions/projects";
 import { getCompanyStats, getPipelineStats } from "@/lib/actions/workers";
+import { getEjecutivoStats } from "@/lib/actions/ejecutivo";
 import { auth } from "@/lib/auth";
 import { DashboardView } from "@/components/dashboard-view";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const [projects, companyStats, pipelineStats] = await Promise.all([
+  const [projects, companyStats, pipelineStats, ejecutivoStats] = await Promise.all([
     getProjects(),
     getCompanyStats(),
     getPipelineStats(),
+    getEjecutivoStats(),
   ]);
 
   const hour = new Date().getHours();
@@ -27,6 +29,7 @@ export default async function DashboardPage() {
       }))}
       pipelineStats={pipelineStats}
       companyStats={companyStats}
+      ejecutivoStats={ejecutivoStats}
     />
   );
 }
