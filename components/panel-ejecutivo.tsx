@@ -50,7 +50,7 @@ export function PanelEjecutivo({ stats }: { stats: EjecutivoStats }) {
     },
     {
       key: "ahorro",
-      href: "/dashboard/empleados",
+      href: "/dashboard/validaciones",
       icon: Sparkles,
       value: ahorro.horasAhorradas,
       label: "Ahorro con Validación Inteligente Dotia",

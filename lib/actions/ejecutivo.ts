@@ -109,3 +109,44 @@ export async function getEjecutivoStats(): Promise<EjecutivoStats> {
     },
   };
 }
+
+// ─── Historial de Validaciones Inteligentes Dotia ─────────────────────────────
+// Documentos que pasaron por verificación automática (tienen extractedData).
+
+export type ValidacionHistorial = {
+  id: string;
+  workerId: string;
+  workerName: string;
+  workerRut: string;
+  documentType: string;
+  status: string;            // APPROVED | REJECTED | PENDING
+  documentNumber: string | null;
+  verifyNote: string | null;
+  expiresAt: Date | null;
+  uploadedAt: Date;
+};
+
+export async function getValidacionesHistorial(): Promise<ValidacionHistorial[]> {
+  await assertAuthenticated();
+  const docs = await db.workerDocument.findMany({
+    where: { extractedData: { not: null } },
+    orderBy: { uploadedAt: "desc" },
+    include: {
+      worker: { select: { id: true, fullName: true, rut: true } },
+      documentType: { select: { name: true } },
+    },
+  });
+
+  return docs.map((d) => ({
+    id: d.id,
+    workerId: d.worker.id,
+    workerName: d.worker.fullName,
+    workerRut: d.worker.rut,
+    documentType: d.documentType.name,
+    status: d.status,
+    documentNumber: d.documentNumber,
+    verifyNote: d.verifyNote,
+    expiresAt: d.expiresAt,
+    uploadedAt: d.uploadedAt,
+  }));
+}
