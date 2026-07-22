@@ -68,6 +68,12 @@ const PHASE_MESSAGE_HOJA_VIDA: Partial<Record<Phase, { title: string; subtitle: 
   verifying: { title: "Verificando en el Registro Civil…", subtitle: "Contrastando folio y código de verificación" },
 };
 
+const PHASE_MESSAGE_SNS: Partial<Record<Phase, { title: string; subtitle: string }>> = {
+  uploading: { title: "Subiendo credencial SNS…", subtitle: "Guardando el PDF de forma segura" },
+  extracting: { title: "Leyendo la credencial con IA…", subtitle: "Extrayendo código de validación, RUN e inscripción" },
+  verifying: { title: "Verificando en la Superintendencia de Salud…", subtitle: "Consultando el certificado con el código de validación" },
+};
+
 const PHASE_MESSAGE_LICENCIA: Partial<Record<Phase, { title: string; subtitle: string }>> = {
   uploading:  { title: "Subiendo licencia…",            subtitle: "Guardando el archivo en el servidor" },
   extracting: { title: "IA leyendo la licencia…",       subtitle: "Claude extrae clase, vencimiento y RUT" },
@@ -366,7 +372,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
     setVerificationLic(null);
   }
 
-  const phaseMsg = (isHojaVida || isSns) ? PHASE_MESSAGE_HOJA_VIDA[phase] : isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
+  const phaseMsg = isSns ? PHASE_MESSAGE_SNS[phase] : isHojaVida ? PHASE_MESSAGE_HOJA_VIDA[phase] : isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
   const isProcessing = ["uploading", "extracting", "verifying"].includes(phase);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -626,6 +632,8 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
               {isLicencia
                 ? "La IA lee la licencia y valida la vigencia con extensión legal de +1 año"
+                : isSns
+                ? "La IA extrae los datos y verifica el certificado en la Superintendencia de Salud automáticamente"
                 : "La IA extrae los datos y verifica autenticidad en Registro Civil automáticamente"}
             </p>
           )}
@@ -641,7 +649,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
       {/* Progress */}
       {phase !== "idle" && phase !== "error" && (
         <div className="space-y-4">
-          <StepIndicator phase={phase} verifyLabel={isLicencia ? "Vigencia" : "Registro Civil"} />
+          <StepIndicator phase={phase} verifyLabel={isLicencia ? "Vigencia" : isSns ? "Sup. de Salud" : "Registro Civil"} />
 
           {/* Active step card */}
           {isProcessing && phaseMsg && (

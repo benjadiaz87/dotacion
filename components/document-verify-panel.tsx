@@ -26,19 +26,21 @@ import {
 } from "lucide-react";
 
 const RC_URL = "https://www.registrocivil.cl/principal/servicios-en-linea/consulta-vigencia-documento-1";
+const SNS_URL = "https://emisorcertificados.superdesalud.gob.cl/ValidacionCertificados/";
 
 export type DocKind = "carnet" | "antecedentes" | "licencia" | "hoja_vida" | "sns" | "otro";
 
 // Resultado normalizado — idéntico para las tres verificaciones automáticas
 type AutoResult = { valid: boolean; status: string; message: string };
 
-const KIND_CFG: Record<DocKind, { idLabel: string; verifyingText: string; manualRC: boolean }> = {
-  carnet:       { idLabel: "N° de serie", verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
-  antecedentes: { idLabel: "Folio",       verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
-  hoja_vida:    { idLabel: "Folio",       verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
-  licencia:     { idLabel: "Clase",       verifyingText: "Verificando con IA + validación de vigencia…", manualRC: false },
-  sns:          { idLabel: "N° inscripción", verifyingText: "Verificando con IA + Superintendencia de Salud…", manualRC: true },
-  otro:         { idLabel: "Identificador", verifyingText: "", manualRC: false },
+// authority = organismo que valida (para textos y enlace manual); null = sin verificación externa
+const KIND_CFG: Record<DocKind, { idLabel: string; verifyingText: string; authority: string | null; manualUrl: string | null }> = {
+  carnet:       { idLabel: "N° de serie",    verifyingText: "Verificando con IA + Registro Civil…", authority: "Registro Civil", manualUrl: RC_URL },
+  antecedentes: { idLabel: "Folio",          verifyingText: "Verificando con IA + Registro Civil…", authority: "Registro Civil", manualUrl: RC_URL },
+  hoja_vida:    { idLabel: "Folio",          verifyingText: "Verificando con IA + Registro Civil…", authority: "Registro Civil", manualUrl: RC_URL },
+  licencia:     { idLabel: "Clase",          verifyingText: "Verificando con IA + validación de vigencia…", authority: null, manualUrl: null },
+  sns:          { idLabel: "N° inscripción", verifyingText: "Verificando con IA + Superintendencia de Salud…", authority: "Superintendencia de Salud", manualUrl: SNS_URL },
+  otro:         { idLabel: "Identificador",  verifyingText: "", authority: null, manualUrl: null },
 };
 
 interface Props {
@@ -268,7 +270,7 @@ export function DocumentVerifyPanel({
             {/* Datos del trabajador y del documento */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {cfg.manualRC ? "Datos para verificar en Registro Civil" : "Datos del documento"}
+                {cfg.authority ? `Datos para verificar en ${cfg.authority}` : "Datos del documento"}
               </p>
 
               <div className="space-y-2">
@@ -287,19 +289,19 @@ export function DocumentVerifyPanel({
                 ))}
               </div>
 
-              {cfg.manualRC && (
+              {cfg.authority && cfg.manualUrl && (
                 <>
                   <a
-                    href={RC_URL}
+                    href={cfg.manualUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Abrir Registro Civil
+                    Abrir {cfg.authority}
                   </a>
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Copia los datos, verifícalos en el sitio del RC y vuelve a aprobar o rechazar.
+                    Copia los datos, verifícalos en el sitio de {cfg.authority} y vuelve a aprobar o rechazar.
                   </p>
                 </>
               )}
