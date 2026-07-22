@@ -36,6 +36,10 @@ const isHojaVidaType = (name: string) => {
   return n.includes("hoja de vida") && n.includes("conductor");
 };
 
+// Credencial SNS (Superintendencia de Salud / prestadores individuales de salud)
+const SNS_KEYWORDS = ["sns", "servicio nacional de salud", "superintendencia de salud", "prestador"];
+const isSnsType = (name: string) => SNS_KEYWORDS.some((k) => name.toLowerCase().includes(k));
+
 const STAGE_ICONS = [Clipboard, FileText, Hammer, ShieldCheck];
 
 const STAGE_COLORS: Record<number, { active: string; done: string }> = {
@@ -155,6 +159,9 @@ const EXTRACT_LABELS: Record<string, string> = {
   clases: "Clases", restricciones: "Restricciones", numero: "N° licencia",
   fechaVencimientoReal: "Vence (real)", fechaVencimientoExtendida: "Vence (ext. legal)",
   licencias: "Licencias", sinAnotaciones: "Sin anotaciones",
+  // Credencial SNS
+  codigoValidacion: "Cód. validación", run: "RUN", numeroInscripcion: "N° inscripción",
+  fechaRegistro: "Registro", ordenProfesional: "Orden profesional", sexo: "Sexo",
 };
 
 function ExtractedChips({ raw }: { raw: string | null }) {
@@ -405,6 +412,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
               <span className="text-[11px] font-mono font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                 {isCarnetType(doc.documentType.name) ? `Serie: ${doc.uploaded.documentNumber}` :
                  isAntecedentesType(doc.documentType.name) ? `Folio: ${doc.uploaded.documentNumber}` :
+                 isSnsType(doc.documentType.name) ? `N° inscripción: ${doc.uploaded.documentNumber}` :
                  isLicenciaType(doc.documentType.name) ? `Clase: ${doc.uploaded.documentNumber}` :
                  doc.uploaded.documentNumber}
               </span>
@@ -457,7 +465,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
           {isCurrentStage ? (
             // Etapa actual: upload o verify interactivo
             (!doc.uploaded || doc.uploaded.status === "REJECTED") ? (
-              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} isLicencia={isLicenciaType(doc.documentType.name)} isHojaVida={isHojaVidaType(doc.documentType.name)} />
+              <DocumentUploadForm workerId={pipeline.workerId} documentTypeId={doc.documentTypeId} isCarnet={isCarnetType(doc.documentType.name)} isAntecedentes={isAntecedentesType(doc.documentType.name)} isLicencia={isLicenciaType(doc.documentType.name)} isHojaVida={isHojaVidaType(doc.documentType.name)} isSns={isSnsType(doc.documentType.name)} />
             ) : (
               <DocumentVerifyPanel
                 documentId={doc.uploaded.id}
@@ -469,6 +477,7 @@ function DocRow({ doc, pipeline, stage, worker, isCurrentStage, isFutureStage, o
                 docKind={
                   isCarnetType(doc.documentType.name) ? "carnet" :
                   isHojaVidaType(doc.documentType.name) ? "hoja_vida" :
+                  isSnsType(doc.documentType.name) ? "sns" :
                   isAntecedentesType(doc.documentType.name) ? "antecedentes" :
                   isLicenciaType(doc.documentType.name) ? "licencia" : "otro"
                 }
@@ -536,7 +545,7 @@ function ProcesoPanel({ stage, pipeline, worker, isCurrentStage, isFutureStage, 
   const colors = STAGE_COLORS[stage.order];
 
   const isAutoVerifiable = (name: string) =>
-    isCarnetType(name) || isAntecedentesType(name) || isLicenciaType(name) || isHojaVidaType(name);
+    isCarnetType(name) || isAntecedentesType(name) || isLicenciaType(name) || isHojaVidaType(name) || isSnsType(name);
   const pendingAutoCount = enriched.filter(
     (d) => d.uploaded?.status === "PENDING" && isAutoVerifiable(d.documentType.name)
   ).length;

@@ -5,6 +5,8 @@ import { extractAntecedentesData, type AntecedentesData } from "../lib/extractAn
 import { extractHojaVidaData } from "../lib/extractHojaVida.js";
 import { verifyAntecedentes } from "../verifiers/antecedentes.js";
 import { extractLicenciaData, validateLicencia } from "../lib/extractLicencia.js";
+import { extractSnsData } from "../lib/extractSns.js";
+import { verifySns } from "../verifiers/superdesalud.js";
 
 export async function verifyRoutes(app: FastifyInstance) {
   // POST /extract/carnet  — solo extrae datos de la imagen
@@ -141,5 +143,26 @@ export async function verifyRoutes(app: FastifyInstance) {
   });
 
   // GET /health
+  // ─── Credencial SNS (Superintendencia de Salud) ────────────────────────────
+  // POST /extract/sns  — extrae datos de la credencial (PDF base64)
+  app.post<{ Body: { pdf: string } }>("/extract/sns", async (req, reply) => {
+    const { pdf } = req.body;
+    if (!pdf) return reply.status(400).send({ error: "pdf requerido (base64)" });
+    try {
+      const data = await extractSnsData(pdf);
+      return reply.send({ ok: true, data });
+    } catch (err) {
+      return reply.status(422).send({ error: "No se pudo extraer datos del PDF", detail: String(err) });
+    }
+  });
+
+  // POST /verify/sns  — valida el código en la Superintendencia de Salud
+  app.post<{ Body: { codigoValidacion: string; run?: string } }>("/verify/sns", async (req, reply) => {
+    const { codigoValidacion, run } = req.body;
+    if (!codigoValidacion) return reply.status(400).send({ error: "codigoValidacion requerido" });
+    const result = await verifySns(codigoValidacion, run);
+    return reply.send({ ok: result.valid, ...result });
+  });
+
   app.get("/health", async () => ({ status: "ok", service: "dotacion-verificador" }));
 }

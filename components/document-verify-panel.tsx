@@ -7,6 +7,7 @@ import {
   extractCarnetFromImage, verifyCarnetInRC,
   extractAntecedentesFromPdf, verifyAntecedentesInRC,
   extractHojaVidaFromPdf,
+  extractSnsFromPdf, verifySnsInSuperdesalud,
   validateLicenciaDoc,
 } from "@/lib/actions/verificar-documento";
 import { useRouter } from "next/navigation";
@@ -26,7 +27,7 @@ import {
 
 const RC_URL = "https://www.registrocivil.cl/principal/servicios-en-linea/consulta-vigencia-documento-1";
 
-export type DocKind = "carnet" | "antecedentes" | "licencia" | "hoja_vida" | "otro";
+export type DocKind = "carnet" | "antecedentes" | "licencia" | "hoja_vida" | "sns" | "otro";
 
 // Resultado normalizado — idéntico para las tres verificaciones automáticas
 type AutoResult = { valid: boolean; status: string; message: string };
@@ -36,6 +37,7 @@ const KIND_CFG: Record<DocKind, { idLabel: string; verifyingText: string; manual
   antecedentes: { idLabel: "Folio",       verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
   hoja_vida:    { idLabel: "Folio",       verifyingText: "Verificando con IA + Registro Civil…", manualRC: true },
   licencia:     { idLabel: "Clase",       verifyingText: "Verificando con IA + validación de vigencia…", manualRC: false },
+  sns:          { idLabel: "N° inscripción", verifyingText: "Verificando con IA + Superintendencia de Salud…", manualRC: true },
   otro:         { idLabel: "Identificador", verifyingText: "", manualRC: false },
 };
 
@@ -117,6 +119,13 @@ export function DocumentVerifyPanel({
           result = { valid: false, status: "NO_LEGIBLE", message: "No se pudo leer folio o código de verificación de la hoja de vida" };
         } else {
           result = await verifyAntecedentesInRC(documentId, data.folio, data.codigoVerificacion, data.rut);
+        }
+      } else if (docKind === "sns") {
+        const data = await extractSnsFromPdf(documentId);
+        if (!data.codigoValidacion) {
+          result = { valid: false, status: "NO_LEGIBLE", message: "No se pudo leer el código de validación de la credencial SNS" };
+        } else {
+          result = await verifySnsInSuperdesalud(documentId, data.codigoValidacion, data.run);
         }
       } else {
         result = await validateLicenciaDoc(documentId);

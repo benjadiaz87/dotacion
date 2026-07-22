@@ -8,6 +8,7 @@ import {
   extractCarnetFromImage, verifyCarnetInRC, type CarnetExtracted, type VerificationResult,
   extractAntecedentesFromPdf, verifyAntecedentesInRC, type AntecedentesExtracted, type AntecedentesVerificationResult,
   extractHojaVidaFromPdf, type HojaVidaExtracted,
+  extractSnsFromPdf, verifySnsInSuperdesalud,
   validateLicenciaDoc, type LicenciaValidationResult, type LicenciaExtracted,
 } from "@/lib/actions/verificar-documento";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ interface Props {
   isAntecedentes?: boolean;
   isLicencia?: boolean;
   isHojaVida?: boolean;
+  isSns?: boolean;
   /** Solo subir, sin verificación automática (portal del trabajador) */
   uploadOnly?: boolean;
 }
@@ -323,7 +325,7 @@ function CameraCaptureModal({ onCapture, onClose }: { onCapture: (file: File) =>
   );
 }
 
-export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia, isHojaVida, uploadOnly }: Props) {
+export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntecedentes, isLicencia, isHojaVida, isSns, uploadOnly }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
@@ -339,7 +341,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
   const captureInputRef = useRef<HTMLInputElement>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   // La cámara aplica solo a tipos que aceptan imágenes (los certificados RC son PDF)
-  const acceptsImages = !(isAntecedentes || isHojaVida);
+  const acceptsImages = !(isAntecedentes || isHojaVida || isSns);
 
   function openCamera() {
     // En móviles la cámara nativa del sistema es más confiable que getUserMedia
@@ -364,7 +366,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
     setVerificationLic(null);
   }
 
-  const phaseMsg = isHojaVida ? PHASE_MESSAGE_HOJA_VIDA[phase] : isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
+  const phaseMsg = (isHojaVida || isSns) ? PHASE_MESSAGE_HOJA_VIDA[phase] : isLicencia ? PHASE_MESSAGE_LICENCIA[phase] : isAntecedentes ? PHASE_MESSAGE_ANTECEDENTES[phase] : PHASE_MESSAGE_CARNET[phase];
   const isProcessing = ["uploading", "extracting", "verifying"].includes(phase);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -416,6 +418,30 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
         // ── Hoja de Vida del Conductor ───────────────────────────────────────
         // Mismo circuito que antecedentes: folio + código contra el Registro Civil
+        // ── Credencial SNS (Superintendencia de Salud) ──────────────────────
+        if (isSns && file && /\.pdf$/i.test(file.name)) {
+          setPhase("extracting");
+          const sns = await extractSnsFromPdf(documentId);
+          setPhase("extracted");
+
+          if (!sns.codigoValidacion) {
+            toast.error("No se encontró el código de validación en el PDF");
+            setPhase("done_fail");
+            return;
+          }
+
+          setPhase("verifying");
+          const result = await verifySnsInSuperdesalud(documentId, sns.codigoValidacion, sns.run);
+          setPhase(result.valid ? "done_ok" : "done_fail");
+          if (result.valid) toast.success("Credencial SNS verificada y aprobada automáticamente");
+          else toast.error(`Superintendencia de Salud: ${result.message}`);
+
+          formRef.current?.reset();
+          setFile(null);
+          setTimeout(() => router.refresh(), 3000);
+          return;
+        }
+
         if (isHojaVida && file && /\.pdf$/i.test(file.name)) {
           setPhase("extracting");
           const hv: HojaVidaExtracted = await extractHojaVidaFromPdf(documentId);
@@ -536,17 +562,17 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
             </div>
             <div className="text-center">
               <p className={`text-sm font-semibold ${file ? "text-primary" : "text-foreground"}`}>
-                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : (isAntecedentes || isHojaVida) ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona el anverso de la licencia" : "Selecciona el documento")}
+                {file?.name ?? (isCarnet ? "Selecciona la foto del carnet" : (isAntecedentes || isHojaVida || isSns) ? "Selecciona el certificado PDF" : isLicencia ? "Selecciona el anverso de la licencia" : "Selecciona el documento")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isCarnet ? "JPG o PNG — frente del carnet" : (isAntecedentes || isHojaVida) ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — frente de la licencia" : "PDF, JPG o PNG"}
+                {isCarnet ? "JPG o PNG — frente del carnet" : isSns ? "PDF de la Superintendencia de Salud" : (isAntecedentes || isHojaVida) ? "PDF del Registro Civil" : isLicencia ? "JPG, PNG o PDF — frente de la licencia" : "PDF, JPG o PNG"}
               </p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
               name="file"
-              accept={isCarnet ? "image/jpeg,image/png,.jpg,.jpeg,.png" : (isAntecedentes || isHojaVida) ? "application/pdf,.pdf" : isLicencia ? "image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" : "application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"}
+              accept={isCarnet ? "image/jpeg,image/png,.jpg,.jpeg,.png" : (isAntecedentes || isHojaVida || isSns) ? "application/pdf,.pdf" : isLicencia ? "image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" : "application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"}
               className="hidden"
               onChange={handleFileChange}
               required
@@ -595,7 +621,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
 
           {cameraOpen && <CameraCaptureModal onCapture={handleCameraCapture} onClose={() => setCameraOpen(false)} />}
 
-          {!uploadOnly && (isCarnet || isAntecedentes || isLicencia || isHojaVida) && (
+          {!uploadOnly && (isCarnet || isAntecedentes || isLicencia || isHojaVida || isSns) && (
             <p className="text-[11px] text-muted-foreground px-1 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-violet-500 flex-shrink-0" />
               {isLicencia
@@ -605,7 +631,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           )}
 
           <Button type="submit" disabled={!file} className="w-full gap-2 h-10 font-semibold">
-            {!uploadOnly && (isCarnet || isAntecedentes || isLicencia || isHojaVida) ? (
+            {!uploadOnly && (isCarnet || isAntecedentes || isLicencia || isHojaVida || isSns) ? (
               <><ScanLine className="w-4 h-4" /> Subir y verificar automáticamente</>
             ) : "Subir documento"}
           </Button>
@@ -934,7 +960,7 @@ export function DocumentUploadForm({ workerId, documentTypeId, isCarnet, isAntec
           onClick={() => { setPhase("idle"); setExtracted(null); setExtractedAnt(null); setVerification(null); setVerificationAnt(null); setVerificationLic(null); }}
           className="w-full"
         >
-          {(isAntecedentes || isHojaVida) ? "Intentar con otro PDF" : isLicencia ? "Intentar con otro archivo" : "Intentar con otra imagen"}
+          {(isAntecedentes || isHojaVida || isSns) ? "Intentar con otro PDF" : isLicencia ? "Intentar con otro archivo" : "Intentar con otra imagen"}
         </Button>
       )}
     </div>

@@ -12,6 +12,8 @@ const isHojaVidaType = (name: string) => {
   return n.includes("hoja de vida") && n.includes("conductor");
 };
 const isAntecedentesType = (name: string) => name.toLowerCase().includes("antecedente");
+const SNS_KEYWORDS = ["sns", "servicio nacional de salud", "superintendencia de salud", "prestador"];
+const isSnsType = (name: string) => SNS_KEYWORDS.some((k) => name.toLowerCase().includes(k));
 const isLicenciaType = (name: string) => {
   const n = name.toLowerCase();
   return (n.includes("licencia") || n.includes("conducir")) && !isHojaVidaType(name);
@@ -127,6 +129,7 @@ export function WorkerUploadView({
                     isAntecedentes={isAntecedentesType(req.documentType.name)}
                     isLicencia={isLicenciaType(req.documentType.name)}
                     isHojaVida={isHojaVidaType(req.documentType.name)}
+                    isSns={isSnsType(req.documentType.name)}
                   />
                 </div>
               )}

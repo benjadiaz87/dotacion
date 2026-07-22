@@ -335,6 +335,105 @@ export async function extractHojaVidaFromPdf(
   return data;
 }
 
+// ─── Credencial SNS (Superintendencia de Salud) ──────────────────────────────
+// Se valida con el código de validación contra emisorcertificados.superdesalud.gob.cl
+
+export type SnsExtracted = {
+  codigoValidacion: string | null;
+  run: string | null;
+  fullName: string | null;
+  numeroInscripcion: string | null;
+  fechaRegistro: string | null;
+  sexo: string | null;
+  nacionalidad: string | null;
+  fechaNacimiento: string | null;
+  ordenProfesional: string | null;
+  fechaEmision: string | null;
+};
+
+export type SnsVerificationResult = {
+  valid: boolean;
+  status: "VALIDO" | "INVALIDO" | "NO_ENCONTRADO" | "RUT_NO_COINCIDE" | "NO_LEGIBLE" | "ERROR";
+  message: string;
+  confirmedRut?: string;
+  confirmedNombre?: string;
+};
+
+export async function extractSnsFromPdf(workerDocumentId: string): Promise<SnsExtracted> {
+  const doc = await db.workerDocument.findUnique({ where: { id: workerDocumentId } });
+  if (!doc) throw new Error("Documento no encontrado");
+  await assertCanUploadFor(doc.workerId);
+
+  const filePath = resolveUploadPath(doc.fileUrl);
+  const buffer = await readFile(filePath);
+  const pdfBase64 = buffer.toString("base64");
+
+  const res = await fetch(`${VERIFICADOR_URL}/extract/sns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pdf: pdfBase64 }),
+  });
+  if (!res.ok) throw new Error(`Error extrayendo datos: ${await res.text()}`);
+
+  const { data }: { ok: boolean; data: SnsExtracted } = await res.json();
+
+  const issuedAt = parseFechaVencimiento(data.fechaEmision);
+  await db.workerDocument.update({
+    where: { id: workerDocumentId },
+    data: {
+      // N° de inscripción como identificador del documento
+      ...(data.numeroInscripcion ? { documentNumber: data.numeroInscripcion } : {}),
+      ...(issuedAt ? { issuedAt } : {}),
+      extractedData: JSON.stringify(data),
+    },
+  });
+
+  return data;
+}
+
+export async function verifySnsInSuperdesalud(
+  workerDocumentId: string,
+  codigoValidacion: string,
+  runExtraido?: string | null,
+): Promise<SnsVerificationResult> {
+  const doc = await db.workerDocument.findUnique({
+    where: { id: workerDocumentId },
+    select: { workerId: true, worker: { select: { rut: true } } },
+  });
+  if (!doc) throw new Error("Documento no encontrado");
+  await assertCanUploadFor(doc.workerId);
+
+  // El RUN de la credencial debe ser el del trabajador de la ficha
+  if (runExtraido && !rutMatches(runExtraido, doc.worker.rut)) {
+    const message = rutMismatchMessage(runExtraido, doc.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { valid: false, status: "RUT_NO_COINCIDE", message };
+  }
+
+  const res = await fetch(`${VERIFICADOR_URL}/verify/sns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codigoValidacion, run: doc.worker.rut }),
+  });
+  if (!res.ok) throw new Error(`Error verificando en Superintendencia de Salud: ${res.status}`);
+
+  const result: SnsVerificationResult & { ok: boolean } = await res.json();
+
+  if (result.valid && result.confirmedRut && !rutMatches(result.confirmedRut, doc.worker.rut)) {
+    const message = rutMismatchMessage(result.confirmedRut, doc.worker.rut);
+    await saveVerifyNote(workerDocumentId, false, message);
+    return { ...result, valid: false, status: "RUT_NO_COINCIDE", message };
+  }
+  await saveVerifyNote(workerDocumentId, result.valid, result.message);
+
+  if (result.valid) {
+    await db.workerDocument.update({ where: { id: workerDocumentId }, data: { status: "APPROVED" } });
+    revalidatePath("/dashboard/trabajadores/[id]", "page");
+  }
+
+  return result;
+}
+
 export type CarnetExtracted = {
   rut: string | null;
   fullName: string | null;
