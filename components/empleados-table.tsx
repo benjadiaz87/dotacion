@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileSpreadsheet, Loader2, Search, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, FileSpreadsheet, Loader2, Search, Sparkles, Trash2, Users, X } from "lucide-react";
 import Link from "next/link";
 import type { WorkerListItem } from "@/lib/actions/workers";
 import { deleteWorker } from "@/lib/actions/workers";
@@ -32,6 +32,54 @@ const semaphoreConfig = {
 };
 
 const ALL = "__all__";
+
+// Orden por columna. Por defecto: cargo → RUT → nombre
+type SortKey = "fullName" | "rut" | "cargo" | "pipeline" | "proyectos" | "estado";
+type SortDir = "asc" | "desc";
+
+/** RUT comparable numéricamente: "24.101.918-3" → 24101918 */
+function rutValue(rut: string): number {
+  return Number(rut.replace(/\./g, "").split("-")[0]) || 0;
+}
+
+function compareBy(key: SortKey, a: WorkerListItem, b: WorkerListItem): number {
+  switch (key) {
+    case "fullName": return a.fullName.localeCompare(b.fullName, "es");
+    case "rut": return rutValue(a.rut) - rutValue(b.rut);
+    case "cargo": return (a.primaryRole?.name ?? "￿").localeCompare(b.primaryRole?.name ?? "￿", "es");
+    case "pipeline": return a.currentStageOrder - b.currentStageOrder;
+    case "proyectos": return a.projects.length - b.projects.length;
+    case "estado": return Number(a.asignable) - Number(b.asignable);
+  }
+}
+
+// Encabezado clickeable: asc → desc → orden por defecto. A nivel de módulo
+// para que React no lo remonte en cada render.
+function SortableHead({
+  sortKey, sort, onSort, align = "left", children,
+}: {
+  sortKey: SortKey;
+  sort: { key: SortKey; dir: SortDir } | null;
+  onSort: (k: SortKey) => void;
+  align?: "left" | "right";
+  children: React.ReactNode;
+}) {
+  const active = sort?.key === sortKey;
+  return (
+    <TableHead className={align === "right" ? "text-right" : ""}>
+      <button
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${active ? "text-foreground font-semibold" : ""}`}
+        title={active && sort?.dir === "asc" ? "Ascendente — clic para invertir" : active ? "Descendente — clic para restablecer" : "Clic para ordenar"}
+      >
+        {children}
+        {active
+          ? (sort!.dir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
+          : <ArrowUpDown className="w-3 h-3 opacity-30" />}
+      </button>
+    </TableHead>
+  );
+}
 
 function DeleteableWorkerRow({ worker, canWrite = true }: { worker: WorkerListItem; canWrite?: boolean }) {
   const [isPending, startTransition] = useTransition();
@@ -176,6 +224,15 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
   const [asignableFilter, setAsignableFilter] = useState(ALL);
   const [projectFilter, setProjectFilter] = useState(ALL);
   const [dotiaFilter, setDotiaFilter] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) =>
+      prev?.key !== key ? { key, dir: "asc" }
+      : prev.dir === "asc" ? { key, dir: "desc" }
+      : null
+    );
+  }
 
   const roleOptions = useMemo(() => {
     const map = new Map<string, { id: string; name: string; color: string }>();
@@ -197,7 +254,7 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return workers.filter((w) => {
+    const list = workers.filter((w) => {
       if (q && !w.fullName.toLowerCase().includes(q) && !w.rut.toLowerCase().includes(q)) return false;
       if (roleFilter !== ALL && w.primaryRole?.id !== roleFilter) return false;
       if (semaphoreFilter !== ALL && w.semaphore !== semaphoreFilter) return false;
@@ -206,7 +263,17 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
       if (dotiaFilter && w.pendingDotiaCount === 0) return false;
       return true;
     });
-  }, [workers, query, roleFilter, semaphoreFilter, asignableFilter, projectFilter, dotiaFilter]);
+
+    return [...list].sort((a, b) => {
+      if (sort) {
+        const cmp = compareBy(sort.key, a, b);
+        if (cmp !== 0) return sort.dir === "asc" ? cmp : -cmp;
+        return a.fullName.localeCompare(b.fullName, "es"); // desempate estable
+      }
+      // Por defecto: cargo → RUT → nombre
+      return compareBy("cargo", a, b) || compareBy("rut", a, b) || compareBy("fullName", a, b);
+    });
+  }, [workers, query, roleFilter, semaphoreFilter, asignableFilter, projectFilter, dotiaFilter, sort]);
 
   const counts = {
     asignables: workers.filter((w) => w.asignable).length,
@@ -418,12 +485,12 @@ export function EmpleadosTable({ workers, canWrite = true }: Props) {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead>Nombre</TableHead>
-                <TableHead>RUT</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead>Pipeline</TableHead>
-                <TableHead>Proyectos asignados</TableHead>
-                <TableHead className="text-right">Estado</TableHead>
+                <SortableHead sortKey="fullName" sort={sort} onSort={toggleSort}>Nombre</SortableHead>
+                <SortableHead sortKey="rut" sort={sort} onSort={toggleSort}>RUT</SortableHead>
+                <SortableHead sortKey="cargo" sort={sort} onSort={toggleSort}>Cargo</SortableHead>
+                <SortableHead sortKey="pipeline" sort={sort} onSort={toggleSort}>Pipeline</SortableHead>
+                <SortableHead sortKey="proyectos" sort={sort} onSort={toggleSort}>Proyectos asignados</SortableHead>
+                <SortableHead sortKey="estado" sort={sort} onSort={toggleSort} align="right">Estado</SortableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
